@@ -1,0 +1,2490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Audit Tool</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --accent: #64748b; --accent-dark: #334155; --accent-light: #f1f5f9;
+            --accent-hover: #475569;
+            --bg: #f8fafc; --card: #ffffff;
+            --card-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.06);
+            --card-shadow-hover: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.1);
+            --border: #e2e8f0; --border-light: #f1f5f9;
+            --text: #1e293b; --text-muted: #64748b; --text-light: #94a3b8;
+            --success: #10b981; --success-light: #ecfdf5; --success-dark: #065f46;
+            --danger: #ef4444; --danger-light: #fef2f2; --danger-dark: #991b1b;
+            --warning: #f59e0b;
+            --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px;
+            --transition: 0.2s ease;
+        }
+        body.system-florence {
+            --accent: #10b981; --accent-dark: #064e3b; --accent-light: #ecfdf5; --accent-hover: #059669;
+        }
+        body.system-verily {
+            --accent: #3b82f6; --accent-dark: #1e3a5f; --accent-light: #eff6ff; --accent-hover: #2563eb;
+        }
+        body {
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        .header {
+            background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
+            color: white;
+            padding: 24px 40px;
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            position: relative; z-index: 10;
+        }
+        .header-left h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+        .header-left .subtitle { font-size: 0.85rem; opacity: 0.75; margin-top: 4px; font-weight: 400; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .site-badge {
+            background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.25);
+            color: white; padding: 7px 16px; border-radius: 100px;
+            font-size: 0.82rem; font-weight: 600; display: none;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        }
+        .site-badge.active { display: inline-flex; align-items: center; gap: 6px; }
+        .btn-reset-header {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+            color: white; padding: 8px 16px; border-radius: var(--radius-sm);
+            font-size: 0.8rem; font-weight: 600; cursor: pointer; display: none;
+            transition: all var(--transition);
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        }
+        .btn-reset-header.active { display: inline-block; }
+        .btn-reset-header:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+        .btn-clear-settings {
+            background: transparent; border: 1px solid rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.6); padding: 6px 12px; border-radius: var(--radius-sm);
+            font-size: 0.72rem; cursor: pointer; transition: all var(--transition); font-weight: 500;
+        }
+        .btn-clear-settings:hover { background: rgba(255,255,255,0.12); color: white; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 32px 28px; }
+        .step {
+            background: var(--card); border-radius: var(--radius-lg); padding: 28px 32px;
+            margin-bottom: 24px; box-shadow: var(--card-shadow);
+            border: 1px solid var(--border-light);
+            transition: box-shadow var(--transition), transform var(--transition);
+            animation: stepFadeIn 0.35s ease both;
+        }
+        .step:hover { box-shadow: var(--card-shadow-hover); }
+        .step-header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+        .step-number {
+            background: var(--accent); color: white; width: 34px; height: 34px;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.85rem; flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .step-title { font-size: 1.15rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+
+        .site-input-group { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+        .site-input-group .field { flex: 1; min-width: 250px; }
+        .site-input-group label, .col-mapping label {
+            display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 6px;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .site-input-group input, .site-input-group select, .col-mapping select {
+            width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.9rem; font-family: inherit; color: var(--text);
+            background: var(--card); transition: all var(--transition);
+        }
+        .site-input-group input:focus, .col-mapping select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+        }
+
+        .upload-row { display: flex; gap: 20px; flex-wrap: wrap; }
+        .upload-box {
+            flex: 1; min-width: 280px; border: 2px dashed var(--border); border-radius: var(--radius-md);
+            padding: 32px 24px; text-align: center; cursor: pointer; transition: all 0.25s ease;
+            background: var(--border-light); position: relative; overflow: hidden;
+        }
+        .upload-box::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, transparent 60%, color-mix(in srgb, var(--accent) 5%, transparent));
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .upload-box:hover { border-color: var(--accent); background: var(--accent-light); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+        .upload-box:hover::before { opacity: 1; }
+        .upload-box.loaded { border-color: var(--success); background: var(--success-light); border-style: solid; }
+        .upload-box .icon { font-size: 2.2rem; margin-bottom: 10px; filter: grayscale(0.2); }
+        .upload-box .label { font-weight: 700; margin-bottom: 6px; font-size: 0.95rem; color: var(--text); }
+        .upload-box .hint { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; }
+        .upload-box .file-info { font-size: 0.82rem; color: var(--success); margin-top: 10px; font-weight: 600; }
+        .upload-box input[type="file"] { display: none; }
+
+        .col-mapping { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; align-items: flex-end; }
+        .col-mapping .field { flex: 1; min-width: 200px; }
+
+        .mapping-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 16px; }
+        .mapping-table th {
+            background: var(--border-light); padding: 12px 14px; text-align: left;
+            font-size: 0.78rem; font-weight: 600; border-bottom: 2px solid var(--border);
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .mapping-table td { padding: 10px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+        .mapping-table tr:hover { background: var(--border-light); }
+        .mapping-table select {
+            width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.85rem; font-family: inherit; transition: all var(--transition);
+        }
+        .mapping-table select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+        .mapping-table .remove-btn {
+            background: var(--danger-light); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
+            border-radius: var(--radius-sm); padding: 6px 12px; cursor: pointer; font-size: 0.78rem;
+            font-weight: 600; transition: all var(--transition); font-family: inherit;
+        }
+        .mapping-table .remove-btn:hover { background: var(--danger); color: white; }
+
+        .role-recog-table { width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 16px; }
+        .role-recog-table th {
+            background: var(--border-light); padding: 12px 14px; text-align: left;
+            font-size: 0.78rem; font-weight: 600; border-bottom: 2px solid var(--border);
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .role-recog-table td { padding: 12px 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+        .role-recog-table tr { transition: background var(--transition); }
+        .role-recog-table tr.matched { background: var(--success-light); }
+        .role-recog-table tr.unmatched { background: var(--danger-light); }
+        .role-recog-table select {
+            padding: 8px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.85rem; font-family: inherit; transition: all var(--transition); width: 100%;
+        }
+        .role-recog-table select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent); }
+        .match-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px;
+            font-size: 0.72rem; font-weight: 600;
+        }
+        .match-badge.auto { background: #d1fae5; color: var(--success-dark); }
+        .match-badge.manual { background: #dbeafe; color: #1e40af; }
+        .match-badge.skip { background: #fecaca; color: var(--danger-dark); }
+        .user-count-badge {
+            display: inline-block; background: var(--border-light); color: var(--text-muted);
+            padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; margin-left: 6px;
+        }
+
+        .info-callout {
+            background: var(--accent-light); border-left: 4px solid var(--accent);
+            padding: 14px 18px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0; margin-bottom: 18px;
+            font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;
+        }
+        .info-callout strong { color: var(--text); }
+        .excluded-summary {
+            background: var(--border-light); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 14px 18px; margin-top: 18px; font-size: 0.85rem; color: var(--text-muted);
+        }
+        .excluded-summary strong { color: var(--text); }
+
+        /* Pagination */
+        .pagination-bar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 0; margin-top: 10px; font-size: 0.82rem; color: var(--text-muted);
+            gap: 12px; flex-wrap: wrap;
+        }
+        .pagination-bar .page-info { font-weight: 500; }
+        .pagination-bar .page-controls { display: flex; align-items: center; gap: 6px; }
+        .pagination-bar .page-btn {
+            background: var(--border-light); border: 1px solid var(--border); color: var(--text);
+            padding: 5px 12px; border-radius: var(--radius-sm); cursor: pointer;
+            font-size: 0.78rem; font-weight: 600; font-family: inherit; transition: all var(--transition);
+        }
+        .pagination-bar .page-btn:hover:not(:disabled) { background: var(--border); }
+        .pagination-bar .page-btn:disabled { opacity: 0.4; cursor: default; }
+        .pagination-bar .page-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+        .pagination-bar .page-size-select {
+            padding: 5px 8px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.78rem; font-family: inherit; color: var(--text); background: var(--card);
+            cursor: pointer;
+        }
+
+        .btn {
+            padding: 11px 22px; border: none; border-radius: var(--radius-sm);
+            font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+            font-family: inherit; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: var(--accent); color: white; box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent); }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent); }
+        .btn-secondary { background: var(--border-light); color: var(--text); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); transform: translateY(-1px); }
+        .btn-success { background: var(--success); color: white; box-shadow: 0 2px 8px color-mix(in srgb, var(--success) 30%, transparent); }
+        .btn-success:hover { background: #059669; transform: translateY(-1px); box-shadow: 0 4px 14px color-mix(in srgb, var(--success) 35%, transparent); }
+        .btn-warning { background: var(--warning); color: white; box-shadow: 0 2px 8px rgba(245,158,11,0.3); }
+        .btn-warning:hover { background: #d97706; transform: translateY(-1px); }
+        .btn-row { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+
+        .results-summary { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+        .stat-card {
+            flex: 1; min-width: 150px; padding: 22px 18px; border-radius: var(--radius-md); text-align: center;
+            border: 1px solid transparent; transition: all var(--transition); position: relative; overflow: hidden;
+        }
+        .stat-card::after {
+            content: ''; position: absolute; top: -30%; right: -20%; width: 80px; height: 80px;
+            border-radius: 50%; opacity: 0.08; background: currentColor;
+        }
+        .stat-card .stat-value { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.2; }
+        .stat-card .stat-label { font-size: 0.78rem; margin-top: 6px; font-weight: 500; opacity: 0.85; }
+        .stat-compliant { background: var(--success-light); color: var(--success-dark); border-color: #a7f3d0; }
+        .stat-noncompliant { background: var(--danger-light); color: var(--danger-dark); border-color: #fecaca; }
+        .stat-total { background: var(--accent-light); color: var(--accent-dark); border-color: #bfdbfe; }
+
+        .results-table-wrapper {
+            overflow-x: auto; margin-top: 16px; border: 1px solid var(--border);
+            border-radius: var(--radius-md); background: var(--card);
+        }
+        .results-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; table-layout: fixed; }
+        .results-table th {
+            background: var(--accent); color: white; padding: 8px 10px; text-align: left;
+            font-weight: 600; position: sticky; top: 0; white-space: nowrap; z-index: 1;
+            font-size: 0.73rem; text-transform: uppercase; letter-spacing: 0.03em;
+        }
+        .results-table th:first-child { border-radius: var(--radius-md) 0 0 0; }
+        .results-table th:last-child { border-radius: 0 var(--radius-md) 0 0; }
+        .results-table th.sortable { cursor: pointer; user-select: none; }
+        .results-table th.sortable:hover { background: var(--accent-hover); }
+        .results-table td { padding: 7px 10px; border-bottom: 1px solid var(--border-light); word-wrap: break-word; overflow-wrap: break-word; }
+        .results-table tr { transition: background var(--transition); }
+        .results-table tr:hover { background: var(--border-light); }
+        .results-table tr.row-compliant { background: color-mix(in srgb, var(--success-light) 50%, white); }
+        .results-table tr.row-compliant:hover { background: var(--success-light); }
+        .results-table tr.row-noncompliant { background: color-mix(in srgb, var(--danger-light) 50%, white); }
+        .results-table tr.row-noncompliant:hover { background: var(--danger-light); }
+        .status-compliant { color: var(--success); font-weight: 700; }
+        .status-noncompliant { color: var(--danger); font-weight: 700; }
+
+        .role-tag {
+            display: inline-block; background: var(--border-light); padding: 2px 6px;
+            border-radius: 4px; font-size: 0.73rem; margin: 1px 1px;
+            font-weight: 500; color: var(--text-muted);
+        }
+        .role-tag.addon { background: #f3e8ff; color: #6b21a8; }
+        .course-tag { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 0.73rem; margin: 1px 1px; font-weight: 500; }
+        .course-tag.done { background: #d1fae5; color: var(--success-dark); }
+        .course-tag.missing { background: #fecaca; color: var(--danger-dark); }
+        .domain-tag {
+            display: inline-block; background: #dbeafe; color: #1e40af;
+            padding: 1px 5px; border-radius: 3px; font-size: 0.72rem; font-weight: 600;
+        }
+        .match-badge {
+            display: inline-block; padding: 2px 6px; border-radius: 4px;
+            font-size: 0.7rem; font-weight: 600; margin-left: 3px; cursor: help;
+        }
+        .match-badge.exact { background: #d1fae5; color: var(--success-dark); }
+        .match-badge.manual { background: #dbeafe; color: #1e40af; }
+        .match-badge.fuzzy-email { background: #fef3c7; color: #92400e; }
+        .match-badge.diff-domain { background: #fed7aa; color: #9a3412; }
+        .match-badge.name-match { background: #fce7f3; color: #9d174d; }
+        .match-badge.no-record { background: var(--border-light); color: var(--text-muted); font-weight: 500; font-style: italic; }
+        .link-btn {
+            display: inline-block; background: none; border: 1px solid var(--border); color: var(--text-muted);
+            padding: 1px 5px; border-radius: 3px; font-size: 0.68rem; cursor: pointer;
+            margin-left: 3px; vertical-align: middle; transition: all var(--transition); font-weight: 500;
+        }
+        .link-btn:hover { background: var(--border-light); border-color: var(--text-light); color: var(--text); }
+
+        .filter-bar {
+            display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; align-items: center;
+            background: var(--border-light); padding: 16px 18px; border-radius: var(--radius-md); border: 1px solid var(--border);
+        }
+        .filter-bar input, .filter-bar select {
+            padding: 9px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 0.84rem; font-family: inherit; background: var(--card);
+            transition: all var(--transition); color: var(--text);
+        }
+        .filter-bar input:focus, .filter-bar select:focus {
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+        }
+        .filter-bar input[type="text"] { flex: 1; min-width: 180px; }
+        .filter-bar .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-bar .filter-label {
+            font-size: 0.68rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.06em;
+        }
+        .filter-count { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; font-weight: 500; }
+        .hidden { display: none; }
+
+        /* System selection cards */
+        .system-card {
+            flex: 1; min-width: 240px; border: 2px solid var(--border); border-radius: var(--radius-lg);
+            padding: 36px 28px; text-align: center; cursor: pointer; transition: all 0.25s ease;
+            background: var(--card); position: relative; overflow: hidden;
+        }
+        .system-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, transparent 50%, color-mix(in srgb, var(--accent) 6%, transparent));
+            opacity: 0; transition: opacity 0.25s ease;
+        }
+        .system-card:hover {
+            border-color: var(--accent); background: var(--accent-light);
+            transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+        .system-card:hover::before { opacity: 1; }
+        .system-card.selected {
+            border-color: var(--accent); background: var(--accent-light); border-width: 2.5px;
+            box-shadow: 0 4px 20px color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+        .system-card .card-name { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 8px; letter-spacing: -0.01em; }
+        .system-card .card-desc { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+        /* Toast notifications */
+        .toast-container {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+            display: flex; flex-direction: column; gap: 10px; align-items: flex-end;
+        }
+        .toast {
+            background: var(--text); color: white; padding: 10px 20px; border-radius: var(--radius-sm);
+            font-size: 0.82rem; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+            opacity: 0; transform: translateY(12px); font-family: inherit;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards, toastOut 0.3s ease 2s forwards;
+        }
+        @keyframes toastIn { to { opacity: 1; transform: translateY(0); } }
+        @keyframes toastOut { to { opacity: 0; transform: translateY(-12px); } }
+
+        /* Audit data quality report */
+        .audit-report {
+            background: var(--border-light); border: 1px solid var(--border); border-radius: var(--radius-md);
+            padding: 0; margin-bottom: 18px; font-size: 0.82rem; color: var(--text-muted);
+        }
+        .audit-report summary {
+            padding: 12px 18px; cursor: pointer; font-weight: 600; color: var(--text);
+            list-style: none; display: flex; align-items: center; gap: 8px;
+            transition: background var(--transition); border-radius: var(--radius-md);
+        }
+        .audit-report summary:hover { background: var(--border); }
+        .audit-report summary::-webkit-details-marker { display: none; }
+        .audit-report summary::before { content: '▸'; transition: transform 0.2s ease; font-size: 0.9rem; }
+        .audit-report[open] summary::before { transform: rotate(90deg); }
+        .audit-report .report-body { padding: 4px 18px 16px; }
+        .audit-report .report-row { display: flex; gap: 28px; flex-wrap: wrap; }
+        .audit-report .report-col { flex: 1; min-width: 200px; }
+        .audit-report .report-col h4 {
+            font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+            color: var(--text-light); margin-bottom: 8px; font-weight: 600;
+        }
+        .audit-report ul { list-style: none; padding: 0; margin: 0; }
+        .audit-report li { padding: 3px 0; }
+        .audit-report .num { font-weight: 700; color: var(--accent); }
+        .audit-report .warn { color: #ea580c; font-weight: 500; }
+
+        /* Compliance Trend */
+        .trend-section { margin-bottom: 18px; }
+        .trend-headline { font-size: 0.9rem; color: var(--text); margin-bottom: 14px; line-height: 1.6; }
+        .trend-positive { color: var(--success); font-weight: 700; }
+        .trend-negative { color: var(--danger); font-weight: 700; }
+        .trend-neutral { color: var(--text-muted); font-weight: 600; }
+        .trend-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+        .trend-table th {
+            background: var(--border-light); padding: 8px 14px; text-align: left;
+            font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+            border-bottom: 2px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em;
+        }
+        .trend-table td { padding: 8px 14px; border-bottom: 1px solid var(--border-light); color: var(--text-muted); }
+        .trend-table tr { transition: background var(--transition); }
+        .trend-table tr:hover { background: var(--border-light); }
+
+        /* Animations */
+        @keyframes stepFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+            z-index: 1000; align-items: center; justify-content: center;
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            animation: modalBgIn 0.2s ease;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card); border-radius: var(--radius-lg); box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+            width: 90%; max-width: 640px; max-height: 80vh; display: flex; flex-direction: column;
+            animation: modalIn 0.25s cubic-bezier(0.16,1,0.3,1);
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 18px 24px; border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-size: 1rem; font-weight: 700; color: var(--text); }
+        .modal-close {
+            background: none; border: none; font-size: 1.3rem; color: var(--text-muted);
+            cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); transition: all var(--transition);
+            line-height: 1;
+        }
+        .modal-close:hover { background: var(--border-light); color: var(--text); }
+        .modal-body { padding: 16px 24px; overflow-y: auto; flex: 1; }
+        .modal-body table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .modal-body th {
+            text-align: left; padding: 8px 10px; border-bottom: 2px solid var(--border);
+            font-size: 0.72rem; font-weight: 600; color: var(--text-muted);
+            text-transform: uppercase; letter-spacing: 0.04em;
+            background: var(--card);
+        }
+        .modal-body td { padding: 7px 10px; border-bottom: 1px solid var(--border-light); color: var(--text); }
+        .modal-body tr:hover { background: var(--border-light); }
+        .modal-footer { padding: 12px 24px; border-top: 1px solid var(--border); text-align: right; }
+        @keyframes modalBgIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        /* Clickable user count */
+        .user-count-badge.clickable { cursor: pointer; transition: all var(--transition); }
+        .user-count-badge.clickable:hover { background: var(--accent-light); color: var(--accent); }
+
+        /* Descriptions under steps */
+        .step p { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+        /* Scrollbar styling */
+        .results-table-wrapper::-webkit-scrollbar { width: 6px; height: 6px; }
+        .results-table-wrapper::-webkit-scrollbar-track { background: var(--border-light); border-radius: 3px; }
+        .results-table-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        .results-table-wrapper::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+        @media (max-width: 768px) {
+            .container { padding: 16px; }
+            .step { padding: 20px 18px; }
+            .header { padding: 18px 20px; }
+            .filter-bar { padding: 12px 14px; }
+        }
+
+        @media print {
+            .header { padding: 10px 20px; box-shadow: none; }
+            .btn, .upload-box, .filter-bar, .btn-row, .btn-reset-header, .btn-clear-settings { display: none !important; }
+            .step { box-shadow: none; border: 1px solid var(--border); animation: none; }
+            .results-table-wrapper { max-height: none !important; overflow: visible !important; }
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <h1 id="header-title">User Audit Tool</h1>
+        <div class="subtitle" id="header-subtitle">Select a system to begin</div>
+    </div>
+    <div class="header-right">
+        <button class="btn-clear-settings" onclick="clearSavedSettings()" title="Clear all saved settings from browser storage">&#9881; Clear Saved Settings</button>
+        <span class="site-badge" id="header-site-badge"></span>
+        <button class="btn-reset-header" id="btn-reset-header" onclick="resetAudit()">&#8634; New Site Audit</button>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- STEP 1: System Selection -->
+    <div class="step" id="step-system">
+        <div class="step-header">
+            <div class="step-number">1</div>
+            <div class="step-title">Select System</div>
+        </div>
+        <p style="margin-bottom:14px;">Choose which system you are auditing. This determines roles, certifications, and file formats.</p>
+        <div class="upload-row" id="system-cards"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step hidden" id="step-site">
+        <div class="step-header">
+            <div class="step-number">2</div>
+            <div class="step-title" id="site-step-title">Select Site</div>
+        </div>
+        <p id="site-step-desc" style="margin-bottom:14px;">Identify which site instance you are auditing.</p>
+        <div class="site-input-group">
+            <div class="field">
+                <label for="site-name">Site Name</label>
+                <input type="text" id="site-name" placeholder="e.g. Astera Cancer Care">
+            </div>
+            <div class="field" style="max-width:250px;">
+                <label for="audit-date">Audit Date</label>
+                <input type="date" id="audit-date">
+            </div>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step hidden" id="step-upload">
+        <div class="step-header">
+            <div class="step-number">3</div>
+            <div class="step-title">Upload Data Files</div>
+        </div>
+        <div class="upload-row">
+            <label class="upload-box" id="box-users">
+                <div class="icon">&#128100;</div>
+                <div class="label">System Users (Access Report)</div>
+                <div class="hint" id="hint-users">System access report (CSV or XLSX).</div>
+                <div class="file-info" id="info-users"></div>
+                <input type="file" id="file-users" accept=".csv,.xlsx,.xls">
+            </label>
+            <label class="upload-box" id="box-training">
+                <div class="icon">&#128218;</div>
+                <div class="label">Training Completion Report</div>
+                <div class="hint" id="hint-training">Training completion report (CSV or XLSX).</div>
+                <div class="file-info" id="info-training"></div>
+                <input type="file" id="file-training" accept=".csv,.xlsx,.xls">
+            </label>
+        </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step hidden" id="step-columns">
+        <div class="step-header">
+            <div class="step-number">4</div>
+            <div class="step-title">Map Columns</div>
+        </div>
+        <p style="margin-bottom:14px;">Verify the auto-detected column mappings.</p>
+        <h4 style="margin-bottom:8px;">System Users File</h4>
+        <div class="col-mapping" id="user-col-mapping"></div>
+        <h4 style="margin-top:20px;margin-bottom:8px;">Training Completion File</h4>
+        <div class="col-mapping" id="training-col-mapping"></div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step hidden" id="step-role-recog">
+        <div class="step-header">
+            <div class="step-number">5</div>
+            <div class="step-title">Role Recognition</div>
+        </div>
+        <div class="info-callout" id="role-recog-info">
+            <strong>Only auditable roles are included.</strong> The tool detected all unique roles in the access report
+            and matched them against the known auditable roles. Non-matching roles are <strong>excluded</strong>. You can override any match below.
+        </div>
+        <table class="role-recog-table" id="role-recog-table">
+            <thead>
+                <tr>
+                    <th style="width:30%;">Role in CSV</th>
+                    <th style="width:10%;">Users</th>
+                    <th style="width:30%;">Matched To &rarr;</th>
+                    <th style="width:15%;">Match</th>
+                    <th style="width:15%;">Include?</th>
+                </tr>
+            </thead>
+            <tbody id="role-recog-body"></tbody>
+        </table>
+        <div class="pagination-bar" id="role-pagination"></div>
+        <div id="monitor-toggle" style="margin-top:8px;display:none;"></div>
+        <div class="excluded-summary" id="excluded-summary"></div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step hidden" id="step-mapping">
+        <div class="step-header">
+            <div class="step-number">6</div>
+            <div class="step-title">Role &rarr; Required Certification Mapping</div>
+        </div>
+        <div class="info-callout" id="cert-mapping-info">
+            <strong>Fuzzy Course Matching:</strong> The tool uses fuzzy matching on course titles &mdash;
+            e.g. &ldquo;Investigator Training&rdquo; will match &ldquo;Investigator/PI Training&rdquo;.
+        </div>
+        <table class="mapping-table" id="mapping-table">
+            <thead>
+                <tr>
+                    <th style="width:30%;">Auditable Role</th>
+                    <th style="width:35%;">Required Certification/Course</th>
+                    <th style="width:15%;">Role Type</th>
+                    <th style="width:20%;"></th>
+                </tr>
+            </thead>
+            <tbody id="mapping-body"></tbody>
+        </table>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="addMappingRow()">+ Add Mapping</button>
+        </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step hidden" id="step-run">
+        <div class="step-header">
+            <div class="step-number">7</div>
+            <div class="step-title">Run Audit</div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-primary" onclick="runAudit()">&#9654; Run Audit Comparison</button>
+        </div>
+    </div>
+
+    <!-- STEP 8 -->
+    <div class="step hidden" id="step-results">
+        <div class="step-header">
+            <div class="step-number">8</div>
+            <div class="step-title">Audit Results &mdash; <span id="results-site-label" style="color:var(--accent);"></span></div>
+        </div>
+        <div class="results-summary" id="results-summary"></div>
+        <div id="trend-container"></div>
+        <div id="audit-report-container"></div>
+        <div class="filter-bar">
+            <div class="filter-group" style="flex:1;min-width:180px;">
+                <span class="filter-label">Search</span>
+                <input type="text" id="filter-search" placeholder="Name, email, or domain..." oninput="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Email Domain</span>
+                <select id="filter-domain" onchange="applyFilters()"></select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Status</span>
+                <select id="filter-status" onchange="applyFilters()">
+                    <option value="all">All Statuses</option>
+                    <option value="compliant">&#10003; Compliant</option>
+                    <option value="noncompliant">&#10007; Non-Compliant</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Role</span>
+                <select id="filter-role" onchange="applyFilters()"></select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">Match Type</span>
+                <select id="filter-match" onchange="applyFilters()">
+                    <option value="all">All Match Types</option>
+                    <option value="manual">Manual Link</option>
+                    <option value="exact">Exact Email</option>
+                    <option value="fuzzy-email">Fuzzy Email</option>
+                    <option value="diff-domain">Diff Domain</option>
+                    <option value="name">Name Match</option>
+                    <option value="none">No Record</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <span class="filter-label">&nbsp;</span>
+                <button class="btn btn-secondary" style="padding:8px 14px;font-size:0.8rem;" onclick="clearFilters()">Clear Filters</button>
+            </div>
+        </div>
+        <div class="filter-count" id="filter-count"></div>
+        <div class="results-table-wrapper" style="max-height:600px;overflow-y:auto;">
+            <table class="results-table" id="results-table">
+                <thead><tr id="results-thead"></tr></thead>
+                <tbody id="results-tbody"></tbody>
+            </table>
+        </div>
+        <div class="excluded-summary" id="results-excluded-summary" style="margin-top:16px;display:none;"></div>
+        <div class="btn-row" style="margin-top:16px;">
+            <button class="btn btn-success" onclick="exportCSV('all')">&#128229; Export Full Report</button>
+            <button class="btn btn-primary" onclick="exportCSV('noncompliant')">&#10007; Non-Compliant Only</button>
+            <button class="btn btn-secondary" onclick="exportCSV('compliant')">&#10003; Compliant Only</button>
+            <button class="btn btn-secondary" onclick="exportCSV('filtered')">&#128270; Export Current Filter</button>
+            <button class="btn btn-warning" id="btn-reset-results" onclick="resetAudit()" style="margin-left:auto;">&#8634; New Audit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ========================================================================
+//  User Audit Tool — Multi-System (Florence eBinders, Verily, etc.)
+// ========================================================================
+
+// ===== SYSTEM CONFIGURATIONS =====
+const SYSTEMS = {
+    florence: {
+        id: 'florence',
+        name: 'Florence eBinders',
+        description: 'Per-site audit with certification hierarchy and add-on roles',
+        auditableRoles: [
+            { canonical: 'Investigator',                  course: 'Investigator/PI Training',                         type: 'base' },
+            { canonical: 'Principal Investigator',         course: 'Investigator/PI Training',                         type: 'base' },
+            { canonical: 'Research Staff Admin',           course: '11. Quiz: eISF Training for Study Staff',          type: 'base' },
+            { canonical: 'View and Sign',                  course: 'View Only Training - Read and Sign',               type: 'base' },
+            { canonical: 'Team Setup',                     course: '8. Quiz: Team Admin Training for eTMF and eISF',   type: 'base' },
+            { canonical: 'OO System Admin',                course: '11. Quiz: eISF Training for Implementation Team',  type: 'base' },
+            { canonical: 'User Setup',                     course: '11. Quiz: eISF Training for Implementation Team',  type: 'addon' },
+            { canonical: 'Site and Study Setup (Add-On)',   course: '11. Quiz: eISF Training for Implementation Team',  type: 'addon' }
+        ],
+        addonInheritsFrom: 'Research Staff Admin',
+        certHierarchy: [
+            '11. Quiz: eISF Training for Implementation Team',
+            '11. Quiz: eISF Training for Study Staff',
+            '8. Quiz: Team Admin Training for eTMF and eISF',
+            'Investigator/PI Training',
+            'View Only Training - Read and Sign'
+        ],
+        courseAliases: {
+            '11. Quiz: eISF Training for Implementation Team': [
+                '11. Quiz: eBinders and SiteLink Training for Implementation Team',
+                '11. Quiz: eBinders Training for Implementation Team'
+            ],
+            '11. Quiz: eISF Training for Study Staff': [
+                '10. Quiz: eBinders Training for Site Staff',
+                '11. Quiz: eBinders Training for Site Staff',
+                '11. Quiz: eISF Training for Site Staff'
+            ],
+            'Investigator/PI Training': [
+                '4. Finish: PI Training for eTMF and eISF'
+            ]
+        },
+        defaultManualOverrides: {
+            'stephanie.staskiewicz@oneoncology.com': 'spacheco@echoct.com',
+            'jessica.bivins@oneoncology.com': 'jessica.piggee@oneoncology.com',
+            'jackie.johnson@oneoncology.com': 'jjohnson4@tnonc.com'
+        },
+        perSiteAudit: true,
+        roleExtractor: null,
+        roleAliases: {},
+        trainingNameMode: 'split',
+        columnMap: {},
+        lsPrefix: 'florenceAudit_',
+        exportPrefix: 'florence_audit',
+        labels: {
+            pageTitle: 'Florence eBinders - User Audit Tool',
+            headerTitle: 'Florence eBinders &mdash; User Audit Tool',
+            headerSubtitle: 'Compare system users against training completion records \u2022 Per-site audit',
+            siteStepTitle: 'Select Site',
+            siteStepDesc: 'Identify which Florence site instance you are auditing.',
+            siteFieldLabel: 'Site Name',
+            siteFieldPlaceholder: 'e.g. Astera Cancer Care',
+            usersFileHint: 'Florence Access Dates Report (CSV or XLSX).<br>Users with add-on roles may appear on multiple rows.',
+            trainingFileHint: 'Full training report (CSV or XLSX) with all user completions across all sites.',
+            roleRecogInfo: '<strong>Only auditable roles are included.</strong> The tool detected all unique roles in the access report and matched them against the known auditable roles. Non-matching roles (Auditor roles, Florence Support, etc.) are <strong>excluded</strong>. You can override any match below.',
+            certMappingInfo: '<strong>Add-On Role Logic:</strong> <em>User Setup</em> and <em>Site and Study Setup (Add-On)</em> are elevated add-on roles assigned alongside <strong>Research Staff Admin</strong>. Users with an add-on role automatically require the Research Staff Admin certification too.<br><br><strong>Fuzzy Course Matching:</strong> The tool uses fuzzy matching on course titles &mdash; e.g. &ldquo;Investigator Training&rdquo; will match &ldquo;Investigator/PI Training&rdquo;.',
+            resetButtonLabel: '&#8634; New Site Audit',
+            newAuditConfirm: 'Start a new site audit? Current results will be cleared.'
+        }
+    },
+    verily: {
+        id: 'verily',
+        name: 'Verily',
+        description: 'All-users access report — filter by email domain after audit',
+        auditableRoles: [
+            // Corp Limited (3 courses)
+            { canonical: 'Corp Limited', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'Corp Limited', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            { canonical: 'Corp Limited', course: 'Insights - Introduction to Insights', type: 'base' },
+            // Corp Expanded (6 courses = Corp Limited 3 + 3 Finance)
+            { canonical: 'Corp Expanded', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'Corp Expanded', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            { canonical: 'Corp Expanded', course: 'Insights - Introduction to Insights', type: 'base' },
+            { canonical: 'Corp Expanded', course: 'Site CTMS Finance 1 - Setup Courses', type: 'base' },
+            { canonical: 'Corp Expanded', course: 'Site CTMS Finance 2 - Budgeting Courses', type: 'base' },
+            { canonical: 'Corp Expanded', course: 'Site CTMS Finance 3 - Accounting Courses', type: 'base' },
+            // ---- OneR Site Roles ----
+            // OneR View Only (1 course)
+            { canonical: 'OneR View Only', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            // OneR Coordinator (2 courses)
+            { canonical: 'OneR Coordinator', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'OneR Coordinator', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            // OneR Leadership (6 courses)
+            { canonical: 'OneR Leadership', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'OneR Leadership', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            { canonical: 'OneR Leadership', course: 'Insights - Introduction to Insights', type: 'base' },
+            { canonical: 'OneR Leadership', course: 'Site CTMS Finance 1 - Setup Courses', type: 'base' },
+            { canonical: 'OneR Leadership', course: 'Site CTMS Finance 2 - Budgeting Courses', type: 'base' },
+            { canonical: 'OneR Leadership', course: 'Site CTMS Finance 3 - Accounting Courses', type: 'base' },
+            // ---- Independent Site Roles ----
+            // Independent View Only (1 course)
+            { canonical: 'Independent View Only', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            // Independent Coordinator (2 courses)
+            { canonical: 'Independent Coordinator', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'Independent Coordinator', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            // Independent Leadership (6 courses)
+            { canonical: 'Independent Leadership', course: 'New User - Verily Viewpoint Site CTMS', type: 'base' },
+            { canonical: 'Independent Leadership', course: 'TrialPath - Introduction to TrialPath', type: 'base' },
+            { canonical: 'Independent Leadership', course: 'Insights - Introduction to Insights', type: 'base' },
+            { canonical: 'Independent Leadership', course: 'Site CTMS Finance 1 - Setup Courses', type: 'base' },
+            { canonical: 'Independent Leadership', course: 'Site CTMS Finance 2 - Budgeting Courses', type: 'base' },
+            { canonical: 'Independent Leadership', course: 'Site CTMS Finance 3 - Accounting Courses', type: 'base' },
+            // ---- OneR Admin IT (2 courses) ----
+            { canonical: 'OneR Admin IT', course: 'Site CTMS New User Training', type: 'base' },
+            { canonical: 'OneR Admin IT', course: 'Site CTMS Admin Courses', type: 'base' },
+            // ---- Independent Admin IT (2 courses) ----
+            { canonical: 'Independent Admin IT', course: 'Site CTMS New User Training', type: 'base' },
+            { canonical: 'Independent Admin IT', course: 'Site CTMS Admin Courses', type: 'base' },
+            // ---- Insights (add-on, no instance qualifier: "[SiteName] - Insights") ----
+            { canonical: 'Insights', course: 'Insights - Introduction to Insights', type: 'addon' }
+        ],
+        addonInheritsFrom: null,
+        certHierarchy: [],
+        courseAliases: {},
+        roleAliases: {
+            'Coordinator (Site Study Access)': 'Independent Coordinator'
+        },
+        defaultManualOverrides: {},
+        skipRows: { training: 8 },
+        trainingNameMode: 'full',
+        // Default column mappings: fieldId → exact header name in the file
+        columnMap: {
+            'user-name':    'User Full Name',
+            'user-email':   'User Email Address',
+            'user-role':    'Access Role Name',
+            'train-name':   'User Full Name',
+            'train-email':  'Email',
+            'train-course': 'Training Title',
+            'train-status': 'Training Status'
+        },
+        perSiteAudit: false,
+        roleExtractor: function(csvRole) {
+            // Verily roles: "CORP [Site] - [RoleType]" or "[Site] [OneR|Independent] - [RoleType]"
+            const dashIdx = csvRole.lastIndexOf(' - ');
+            if (dashIdx < 0) return csvRole;
+            const prefix = csvRole.substring(0, dashIdx).trim();
+            const suffix = csvRole.substring(dashIdx + 3).trim();
+            // Corp roles: "CORP Astera - Expanded" → "Corp Expanded"
+            if (prefix.toUpperCase().startsWith('CORP')) {
+                return 'Corp ' + suffix;
+            }
+            // Normalize suffix: translate TrialPath/Finance permission patterns to role names
+            const suffixLower = suffix.toLowerCase();
+            let normalizedSuffix = suffix;
+            let wasMapped = false;
+            if (suffixLower.includes('trialpath') && suffixLower.includes('finance none')) {
+                normalizedSuffix = 'View Only'; wasMapped = true;
+            } else if (suffixLower.includes('trialpath') && suffixLower.includes('finance view')) {
+                normalizedSuffix = 'Coordinator'; wasMapped = true;
+            } else if (/^admin\b.*\bit\b/.test(suffixLower)) {
+                normalizedSuffix = 'Admin IT'; wasMapped = true;
+            } else if (/^admin\b.*\bsite\b/.test(suffixLower)) {
+                return 'Admin Site (not auditable)';  // prevent fuzzy match to Admin IT
+            }
+            // Site roles: detect instance type (OneR / Independent) at end of prefix
+            const prefixLower = prefix.toLowerCase();
+            if (prefixLower.endsWith('independent')) {
+                return 'Independent ' + normalizedSuffix;
+            }
+            if (prefixLower.endsWith('oner')) {
+                return 'OneR ' + normalizedSuffix;
+            }
+            // Fallback: TrialPath/Finance roles without OneR/Independent default to Independent
+            if (wasMapped) return 'Independent ' + normalizedSuffix;
+            return suffix;  // other roles (e.g. Insights) return suffix as-is
+        },
+        lsPrefix: 'verilyAudit_',
+        exportPrefix: 'verily_audit',
+        labels: {
+            pageTitle: 'Verily - User Audit Tool',
+            headerTitle: 'Verily &mdash; User Audit Tool',
+            headerSubtitle: 'Compare system users against training completion records',
+            siteStepTitle: 'Audit Name',
+            siteStepDesc: 'Enter a name for this Verily audit.',
+            siteFieldLabel: 'Audit Name',
+            siteFieldPlaceholder: 'e.g. Q1 2026 Verily Audit',
+            usersFileHint: 'Verily system access report (CSV or XLSX) with all users.',
+            trainingFileHint: 'Training completion report (CSV or XLSX).',
+            roleRecogInfo: '<strong>Only auditable roles are included.</strong> The tool detected all unique roles and matched them against known auditable roles. You can override any match below.',
+            certMappingInfo: '<strong>Fuzzy Course Matching:</strong> The tool uses fuzzy matching on course titles to account for naming variations.',
+            resetButtonLabel: '&#8634; New Audit',
+            newAuditConfirm: 'Start a new audit? Current results will be cleared.'
+        }
+    }
+};
+
+let activeSystem = null;
+
+// ===== STATE =====
+let usersData = null, trainingData = null;
+let usersHeaders = [], trainingHeaders = [];
+let auditResults = [], filteredResults = [];
+let roleRecognition = [];
+let excludedCount = 0;
+let excludedUsers = [];
+let sortCol = null, sortAsc = true;
+let showMonitorRoles = false;
+let rolePageSize = 10;
+let roleCurrentPage = 1;
+
+// Load saved page size from localStorage (shared across systems)
+try { const saved = localStorage.getItem('roleRecogPageSize'); if (saved) rolePageSize = parseInt(saved) || 10; } catch(e) {}
+let manualOverrides = {};
+let knownTrainingEmails = new Set();
+
+document.getElementById('audit-date').valueAsDate = new Date();
+
+// ===== LOCAL STORAGE PERSISTENCE =====
+
+function lsGet(key) {
+    if (!activeSystem) return null;
+    try { const v = localStorage.getItem(activeSystem.lsPrefix + key); return v ? JSON.parse(v) : null; }
+    catch (e) { return null; }
+}
+function lsSet(key, value) {
+    if (!activeSystem) return;
+    try { localStorage.setItem(activeSystem.lsPrefix + key, JSON.stringify(value)); } catch (e) { /* ignore */ }
+}
+function lsRemove(key) {
+    if (!activeSystem) return;
+    try { localStorage.removeItem(activeSystem.lsPrefix + key); } catch (e) { /* ignore */ }
+}
+function lsClearAll() {
+    if (!activeSystem) return;
+    try {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith(activeSystem.lsPrefix)) keys.push(k);
+        }
+        keys.forEach(k => localStorage.removeItem(k));
+    } catch (e) { /* ignore */ }
+}
+
+function djb2Hash(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+        hash = hash & hash;
+    }
+    return Math.abs(hash).toString(36);
+}
+
+function computeHeaderSignature() {
+    const combined = [
+        ...usersHeaders.map(h => h.toLowerCase().trim()),
+        '|||',
+        ...trainingHeaders.map(h => h.toLowerCase().trim())
+    ].join('|');
+    return 'colMap_' + djb2Hash(combined);
+}
+
+function computeRoleKey() {
+    const siteName = (document.getElementById('site-name').value || '').toLowerCase().trim();
+    const roles = roleRecognition.map(r => r.csvRole).sort().join('|').toLowerCase();
+    return 'roleOverrides_' + djb2Hash(siteName + '::' + roles);
+}
+
+function saveColumnMappings() {
+    if (!usersHeaders.length || !trainingHeaders.length) return;
+    const sig = computeHeaderSignature();
+    const mappings = {};
+    ['user-name','user-email','user-role','train-name','train-first','train-last',
+     'train-email','train-course','train-status'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) mappings[id] = el.value;
+    });
+    lsSet(sig, mappings);
+    showToast('✓ Column mappings saved');
+}
+
+function loadColumnMappings() {
+    if (!usersHeaders.length || !trainingHeaders.length) return;
+    const sig = computeHeaderSignature();
+    const saved = lsGet(sig);
+    if (!saved) return;
+    for (const [id, value] of Object.entries(saved)) {
+        const el = document.getElementById(id);
+        if (el) {
+            const options = Array.from(el.options).map(o => o.value);
+            if (options.includes(value)) el.value = value;
+        }
+    }
+}
+
+function saveManualOverrides() {
+    lsSet('manualOverrides', manualOverrides);
+    showToast('✓ Manual overrides saved');
+}
+
+function loadManualOverrides() {
+    const saved = lsGet('manualOverrides');
+    if (!saved || typeof saved !== 'object') return;
+    Object.assign(manualOverrides, saved);
+}
+
+function saveRoleOverrides() {
+    const key = computeRoleKey();
+    const manualEntries = roleRecognition
+        .filter(r => r.matchType === 'manual')
+        .map(r => ({ csvRole: r.csvRole, matchedCanonical: r.matchedCanonical, included: r.included }));
+    if (manualEntries.length > 0) lsSet(key, manualEntries);
+    else lsRemove(key);
+    showToast('✓ Role overrides saved');
+}
+
+function loadRoleOverrides() {
+    const key = computeRoleKey();
+    const saved = lsGet(key);
+    if (!saved || !Array.isArray(saved)) return;
+    for (const override of saved) {
+        const rr = roleRecognition.find(r => r.csvRole === override.csvRole);
+        if (rr) {
+            // Don't let a saved "none" override downgrade an auto-detected match
+            if (!override.matchedCanonical && rr.matchedCanonical) continue;
+            rr.matchedCanonical = override.matchedCanonical;
+            rr.included = override.included;
+            rr.matchType = override.matchedCanonical ? 'manual' : 'none';
+        }
+    }
+}
+
+function saveAuditHistory() {
+    const siteName = getSiteName();
+    if (!siteName || auditResults.length === 0 || !activeSystem) return;
+    const historyKey = 'history_' + djb2Hash(activeSystem.id + '::' + siteName.toLowerCase().trim());
+
+    const total = auditResults.length;
+    const comp = auditResults.filter(r => r.overallStatus === 'compliant').length;
+    const matchBreakdown = {};
+    for (const r of auditResults) matchBreakdown[r.matchMethod] = (matchBreakdown[r.matchMethod] || 0) + 1;
+
+    const snapshot = {
+        siteName, auditDate: getAuditDate(), timestamp: Date.now(),
+        totalUsers: total, compliantCount: comp, nonCompliantCount: total - comp,
+        compliancePercent: Math.round((comp / total) * 1000) / 10,
+        matchMethodBreakdown: matchBreakdown
+    };
+
+    let history = lsGet(historyKey);
+    if (!Array.isArray(history)) history = [];
+    history.unshift(snapshot);
+    if (history.length > 20) history = history.slice(0, 20);
+    lsSet(historyKey, history);
+}
+
+function rebuildTrainingEmailIndex() {
+    knownTrainingEmails = new Set();
+    const emailCol = document.getElementById('train-email')?.value;
+    if (!emailCol || !trainingData) return;
+    for (const t of trainingData) {
+        const email = (t[emailCol] || '').toLowerCase().trim();
+        if (email && email.includes('@')) knownTrainingEmails.add(email);
+    }
+}
+
+function clearSavedSettings() {
+    const sysName = activeSystem ? activeSystem.name : 'all systems';
+    if (!confirm(
+        `This will clear ALL saved settings for ${sysName} from browser storage:\n\n` +
+        '• Saved column mappings\n' +
+        '• Role recognition overrides\n' +
+        '• Manual email link overrides\n' +
+        '• Compliance trend history\n\n' +
+        'Hardcoded default overrides will be kept.\nContinue?'
+    )) return;
+    lsClearAll();
+    Object.keys(manualOverrides).forEach(k => delete manualOverrides[k]);
+    if (activeSystem) Object.assign(manualOverrides, activeSystem.defaultManualOverrides);
+    showToast('Saved settings cleared');
+}
+
+function showToast(message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = message;
+    container.appendChild(t);
+    setTimeout(() => t.remove(), 2200);
+}
+
+// ===== SYSTEM SELECTION =====
+function renderSystemCards() {
+    const container = document.getElementById('system-cards');
+    container.innerHTML = '';
+    for (const sys of Object.values(SYSTEMS)) {
+        const card = document.createElement('div');
+        card.className = 'system-card';
+        card.innerHTML = `<div class="card-name">${escapeHtml(sys.name)}</div><div class="card-desc">${escapeHtml(sys.description)}</div>`;
+        card.addEventListener('click', () => selectSystem(sys.id));
+        container.appendChild(card);
+    }
+}
+
+function selectSystem(systemId) {
+    activeSystem = SYSTEMS[systemId];
+    if (!activeSystem) return;
+
+    // Clear any previously uploaded files when switching systems
+    usersData = trainingData = null;
+    usersHeaders = trainingHeaders = [];
+    document.getElementById('file-users').value = '';
+    document.getElementById('file-training').value = '';
+    document.getElementById('box-users').classList.remove('loaded');
+    document.getElementById('box-training').classList.remove('loaded');
+    document.getElementById('info-users').textContent = '';
+    document.getElementById('info-training').textContent = '';
+
+    // Apply system color theme
+    document.body.className = 'system-' + systemId;
+
+    // Highlight selected card
+    document.querySelectorAll('.system-card').forEach((c, i) => {
+        c.classList.toggle('selected', Object.keys(SYSTEMS)[i] === systemId);
+    });
+
+    // Update dynamic UI text from labels
+    const L = activeSystem.labels;
+    document.title = L.pageTitle;
+    document.getElementById('header-title').innerHTML = L.headerTitle;
+    document.getElementById('header-subtitle').textContent = L.headerSubtitle;
+    document.getElementById('site-step-title').textContent = L.siteStepTitle;
+    document.getElementById('site-step-desc').textContent = L.siteStepDesc;
+    document.querySelector('#step-site label[for="site-name"]').textContent = L.siteFieldLabel;
+    document.getElementById('site-name').placeholder = L.siteFieldPlaceholder;
+    document.getElementById('hint-users').innerHTML = L.usersFileHint;
+    document.getElementById('hint-training').innerHTML = L.trainingFileHint;
+    document.getElementById('role-recog-info').innerHTML = L.roleRecogInfo;
+    document.getElementById('cert-mapping-info').innerHTML = L.certMappingInfo;
+    document.getElementById('btn-reset-results').innerHTML = L.resetButtonLabel;
+    document.getElementById('btn-reset-header').innerHTML = L.resetButtonLabel;
+
+    // Initialize manual overrides from system defaults + localStorage
+    Object.keys(manualOverrides).forEach(k => delete manualOverrides[k]);
+    Object.assign(manualOverrides, activeSystem.defaultManualOverrides);
+    loadManualOverrides();
+
+    // Show steps 2 & 3
+    document.getElementById('step-site').classList.remove('hidden');
+    document.getElementById('step-upload').classList.remove('hidden');
+
+    // Focus site name
+    document.getElementById('site-name').focus();
+}
+
+// Render system cards on page load
+renderSystemCards();
+
+// ===== CSV =====
+function parseCSV(text) {
+    // Strip BOM if present
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    const rows = [];
+    for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        const row = [];
+        let cur = '', inQ = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+                else inQ = !inQ;
+            } else if (ch === ',' && !inQ) { row.push(cur.trim()); cur = ''; }
+            else cur += ch;
+        }
+        row.push(cur.trim());
+        rows.push(row);
+    }
+    return rows;
+}
+function csvToObjects(rows) {
+    if (rows.length < 2) return { headers: rows[0]||[], data: [] };
+    // Filter out columns with empty/blank headers (common in XLSX with extra columns)
+    const rawHeaders = rows[0];
+    const validIndices = [];
+    const headers = [];
+    for (let j = 0; j < rawHeaders.length; j++) {
+        if (rawHeaders[j] && rawHeaders[j].trim()) {
+            validIndices.push(j);
+            headers.push(rawHeaders[j]);
+        }
+    }
+    const data = [];
+    for (let i = 1; i < rows.length; i++) {
+        const obj = {};
+        for (let k = 0; k < validIndices.length; k++) {
+            obj[headers[k]] = (rows[i][validIndices[k]]||'').trim();
+        }
+        if (Object.values(obj).some(v => v)) data.push(obj);
+    }
+    return { headers, data };
+}
+
+// ===== FUZZY ROLE MATCHING =====
+function normalizeRole(str) {
+    return str.toLowerCase().trim()
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .replace(/\badd\s*on\b/g, '')
+        .trim();
+}
+
+function fuzzyMatchRole(csvRole) {
+    const norm = normalizeRole(csvRole);
+    // 1. Exact
+    for (const ar of activeSystem.auditableRoles) {
+        if (csvRole.trim() === ar.canonical) return { canonical: ar.canonical, confidence: 'exact' };
+    }
+    // 2. Normalized exact
+    for (const ar of activeSystem.auditableRoles) {
+        if (norm === normalizeRole(ar.canonical)) return { canonical: ar.canonical, confidence: 'normalized' };
+    }
+    // 3. Substring containment
+    for (const ar of activeSystem.auditableRoles) {
+        const nc = normalizeRole(ar.canonical);
+        if (norm.includes(nc) || nc.includes(norm)) {
+            return { canonical: ar.canonical, confidence: 'fuzzy' };
+        }
+    }
+    // 4. Token overlap
+    const normTokens = norm.split(' ').filter(t => t.length > 2);
+    for (const ar of activeSystem.auditableRoles) {
+        const canonTokens = normalizeRole(ar.canonical).split(' ').filter(t => t.length > 2);
+        const overlap = normTokens.filter(t => canonTokens.includes(t));
+        if (overlap.length >= 2 && overlap.length >= canonTokens.length * 0.6) {
+            return { canonical: ar.canonical, confidence: 'fuzzy' };
+        }
+    }
+    return null;
+}
+
+// ===== FUZZY COURSE MATCHING =====
+function normalizeCourse(str) {
+    return str.toLowerCase().trim()
+        .replace(/[^a-z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function courseMatches(completedTitle, requiredCourse) {
+    // Exact match
+    if (completedTitle === requiredCourse) return true;
+    // Normalized exact
+    const normComp = normalizeCourse(completedTitle);
+    const normReq = normalizeCourse(requiredCourse);
+    if (normComp === normReq) return true;
+    // Substring containment (for "Investigator Training" matching "Investigator/PI Training")
+    if (normComp.includes(normReq) || normReq.includes(normComp)) return true;
+    // Special: both contain "investigator" and both contain "training"
+    if (normComp.includes('investigator') && normComp.includes('training') &&
+        normReq.includes('investigator') && normReq.includes('training')) return true;
+    // Course aliases (old eBinders names → new eISF names)
+    if (!activeSystem) return false;
+    const aliases = activeSystem.courseAliases[requiredCourse];
+    if (aliases) {
+        for (const alias of aliases) {
+            if (completedTitle === alias) return true;
+            const normAlias = normalizeCourse(alias);
+            if (normComp === normAlias) return true;
+            if (normComp.includes(normAlias) || normAlias.includes(normComp)) return true;
+        }
+    }
+    // Reverse: completedTitle might be the canonical and requiredCourse an alias
+    for (const [canonical, aliasList] of Object.entries(activeSystem.courseAliases)) {
+        const normCanon = normalizeCourse(canonical);
+        for (const alias of aliasList) {
+            const normAlias = normalizeCourse(alias);
+            if ((normComp === normCanon || normComp === normAlias) &&
+                (normReq === normCanon || normReq === normAlias)) return true;
+        }
+    }
+    return false;
+}
+
+// ===== UTILITY =====
+function getEmailDomain(email) {
+    if (!email || !email.includes('@')) return '(no email)';
+    return email.split('@')[1].toLowerCase();
+}
+function getSiteName() { return (document.getElementById('site-name').value||'').trim() || 'Unnamed Site'; }
+function getAuditDate() { return document.getElementById('audit-date').value || new Date().toISOString().slice(0,10); }
+function escapeHtml(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ===== FILE HANDLING =====
+document.getElementById('file-users').addEventListener('change', e => handleFile(e.target.files[0], 'users'));
+document.getElementById('file-training').addEventListener('change', e => handleFile(e.target.files[0], 'training'));
+
+function handleFile(file, type) {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    const isExcel = (ext === 'xlsx' || ext === 'xls');
+
+    if (isExcel && typeof XLSX === 'undefined') {
+        alert('XLSX support requires the SheetJS library which failed to load.\nPlease use a CSV file or check your network connection.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        // Number of rows to skip (e.g. Verily training XLSX has headers at row 9 → skip 8)
+        const skip = (activeSystem && activeSystem.skipRows && activeSystem.skipRows[type]) || 0;
+        let result;
+        if (isExcel) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[firstSheet];
+            // Force sheet range to start at row 1 so array indices = (Excel row - 1).
+            // Some XLSX files (e.g. Verily) have !ref starting at A2, which would
+            // shift all indices and break skipRows alignment.
+            const ref = sheet['!ref'];
+            if (ref) {
+                const decoded = XLSX.utils.decode_range(ref);
+                decoded.s.r = 0; // 0-indexed row 0 = Excel row 1
+                sheet['!ref'] = XLSX.utils.encode_range(decoded);
+            }
+            // Get full array-of-arrays (each row = array of cell values)
+            const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            const sliced = skip > 0 ? aoa.slice(skip) : aoa;
+            // Convert every cell to a trimmed string (matches parseCSV output format)
+            const rows = sliced.map(row => row.map(cell => cell == null ? '' : String(cell).trim()));
+            result = csvToObjects(rows);
+        } else {
+            let csvText = e.target.result;
+            // For CSV files, strip metadata lines from the top
+            if (skip > 0) {
+                const lines = csvText.split(/\r?\n/);
+                csvText = lines.slice(skip).join('\n');
+            }
+            result = csvToObjects(parseCSV(csvText));
+        }
+        if (type === 'users') {
+            usersData = result.data; usersHeaders = result.headers;
+            document.getElementById('box-users').classList.add('loaded');
+            document.getElementById('info-users').textContent = `${file.name} — ${result.data.length} rows, ${result.headers.length} columns`;
+            // Try to auto-detect site name from filename (Florence per-site CSVs only)
+            if (activeSystem && activeSystem.perSiteAudit && !document.getElementById('site-name').value.trim()) {
+                const match = file.name.match(/^(.+?)\s*-\s*Access/i);
+                if (match) document.getElementById('site-name').value = match[1].trim();
+            }
+        } else {
+            trainingData = result.data; trainingHeaders = result.headers;
+            document.getElementById('box-training').classList.add('loaded');
+            document.getElementById('info-training').textContent = `${file.name} — ${result.data.length} rows, ${result.headers.length} columns`;
+        }
+        if (usersData && trainingData) showColumnMapping();
+    };
+    if (isExcel) reader.readAsArrayBuffer(file);
+    else reader.readAsText(file);
+}
+
+// ===== COLUMN MAPPING =====
+function showColumnMapping() {
+    document.getElementById('step-columns').classList.remove('hidden');
+    const uf = [
+        { id:'user-name', label:'User Name / Full Name' },
+        { id:'user-email', label:'Email (match key)' },
+        { id:'user-role', label:'Access Role' }
+    ];
+    // Verily has a single "User Full Name" column; Florence has separate First/Last
+    const useFullName = activeSystem && activeSystem.trainingNameMode === 'full';
+    const tf = useFullName ? [
+        { id:'train-name',   label:'Full Name (fallback matching)' },
+        { id:'train-email',  label:'Email (match key)' },
+        { id:'train-course', label:'Course / Certification Title' },
+        { id:'train-status', label:'Completion Indicator (% Complete or Status)' }
+    ] : [
+        { id:'train-first', label:'First Name (fallback matching)' },
+        { id:'train-last',  label:'Last Name (fallback matching)' },
+        { id:'train-email', label:'Email (match key)' },
+        { id:'train-course', label:'Course / Certification Title' },
+        { id:'train-status', label:'Completion Indicator (% Complete or Status)' }
+    ];
+    renderColMap('user-col-mapping', uf, usersHeaders);
+    renderColMap('training-col-mapping', tf, trainingHeaders);
+    // Restore saved column mappings (overrides auto-detect if same CSV structure)
+    loadColumnMappings();
+    // Build training email index for manual-link validation
+    rebuildTrainingEmailIndex();
+    setTimeout(buildRoleRecognition, 100);
+}
+
+function renderColMap(id, fields, headers) {
+    const c = document.getElementById(id); c.innerHTML = '';
+    // Clean headers: strip BOM and extra whitespace
+    const cleanHeaders = headers.map(h => h.replace(/^\uFEFF/, '').trim());
+
+    for (const f of fields) {
+        const d = document.createElement('div'); d.className = 'field';
+        const sel = document.createElement('select');
+        sel.id = f.id;
+
+        // Add placeholder
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = '-- Select Column --';
+        sel.appendChild(placeholder);
+
+        // Add each header as an option (use original header as value, clean for display)
+        for (let i = 0; i < headers.length; i++) {
+            const opt = document.createElement('option');
+            opt.value = headers[i];
+            opt.textContent = cleanHeaders[i] || headers[i];
+            sel.appendChild(opt);
+        }
+
+        // Auto-detect: check system-specific columnMap first, then generic rules
+        let matched = false;
+        if (activeSystem && activeSystem.columnMap && activeSystem.columnMap[f.id]) {
+            const target = activeSystem.columnMap[f.id];
+            const idx = cleanHeaders.findIndex(h => h === target);
+            if (idx !== -1) { sel.value = headers[idx]; matched = true; }
+        }
+        if (!matched) {
+            const bestMatch = findBestColumnMatch(cleanHeaders, f.id);
+            if (bestMatch !== null) sel.value = headers[bestMatch];
+        }
+
+        const label = document.createElement('label');
+        label.htmlFor = f.id;
+        label.textContent = f.label;
+        d.className = 'field';
+        d.appendChild(label);
+        d.appendChild(sel);
+        c.appendChild(d);
+
+        // Save column mappings whenever a select changes
+        sel.addEventListener('change', () => {
+            saveColumnMappings();
+            // Rebuild training email index when training-email column changes
+            if (f.id === 'train-email') rebuildTrainingEmailIndex();
+        });
+    }
+
+    if (id === 'user-col-mapping') {
+        const rs = document.getElementById('user-role');
+        if (rs) rs.addEventListener('change', () => setTimeout(buildRoleRecognition, 50));
+    }
+}
+
+// Returns the INDEX of the best matching header, or null
+function findBestColumnMatch(cleanHeaders, fieldId) {
+    // Each rule: [fieldId, exactMatches[], priority]
+    // Higher priority = preferred when multiple fields could match the same column
+    // We return the FIRST exact match found
+    const rules = {
+        'user-name':    ['name', 'full name', 'fullname', 'user name', 'username', 'user full name'],
+        'user-email':   ['email', 'e-mail', 'email address', 'user email address'],
+        'user-role':    ['role', 'access role name'],
+        'train-name':   ['name', 'full name', 'fullname', 'user full name', 'user name'],
+        'train-first':  ['first name', 'firstname', 'first'],
+        'train-last':   ['last name', 'lastname', 'last', 'surname'],
+        'train-email':  ['email', 'e-mail', 'email address'],
+        'train-course': ['title', 'course', 'course name', 'certification', 'curriculum name'],
+        'train-status': ['% complete', 'percent complete', 'status', 'completion', 'completed', 'progress']
+    };
+
+    const candidates = rules[fieldId] || [];
+    for (const candidate of candidates) {
+        for (let i = 0; i < cleanHeaders.length; i++) {
+            if (cleanHeaders[i].toLowerCase().trim() === candidate) {
+                return i;
+            }
+        }
+    }
+    return null;
+}
+
+// ===== ROLE RECOGNITION =====
+function buildRoleRecognition() {
+    const roleCol = document.getElementById('user-role')?.value;
+    if (!roleCol || !usersData) return;
+
+    const nameCol = document.getElementById('user-name')?.value || '';
+    const emailCol = document.getElementById('user-email')?.value || '';
+    const roleUserSets = {};
+    for (const u of usersData) {
+        const r = u[roleCol] || '';
+        if (!r) continue;
+        const key = ((u[emailCol] || '') || (u[nameCol] || '')).toLowerCase().trim();
+        if (!key) continue;
+        if (!roleUserSets[r]) roleUserSets[r] = new Set();
+        roleUserSets[r].add(key);
+    }
+    const roleCounts = {};
+    for (const [r, s] of Object.entries(roleUserSets)) roleCounts[r] = s.size;
+
+    roleRecognition = [];
+    for (const [csvRole, count] of Object.entries(roleCounts).sort((a,b) => b[1]-a[1])) {
+        const extractedRaw = activeSystem.roleExtractor ? activeSystem.roleExtractor(csvRole) : csvRole;
+        // Normalize whitespace before alias lookup (CSV data may have double spaces)
+        const extractedRole = extractedRaw.replace(/\s+/g, ' ').trim();
+        // Check role aliases before fuzzy matching
+        const aliasedRole = (activeSystem.roleAliases && activeSystem.roleAliases[extractedRole]) || extractedRole;
+        const match = fuzzyMatchRole(aliasedRole);
+        const isMonitor = csvRole.toLowerCase().startsWith('monitor -') || csvRole.toLowerCase().startsWith('monitor-');
+        roleRecognition.push({
+            csvRole, userCount: count,
+            matchedCanonical: match ? match.canonical : '',
+            matchType: match ? (match.confidence === 'exact' ? 'auto-exact' : 'auto-fuzzy') : 'none',
+            included: !!match,
+            isMonitor
+        });
+    }
+
+    // Restore saved role overrides before rendering
+    loadRoleOverrides();
+    roleCurrentPage = 1;
+    renderRoleRecognition();
+    document.getElementById('step-role-recog').classList.remove('hidden');
+    document.getElementById('step-mapping').classList.remove('hidden');
+    document.getElementById('step-run').classList.remove('hidden');
+    populateCertMappings();
+}
+
+function renderRoleRecognition() {
+    const tbody = document.getElementById('role-recog-body');
+    tbody.innerHTML = '';
+    const canonicals = [...new Set(activeSystem.auditableRoles.map(r => r.canonical))];
+    const monitorCount = roleRecognition.filter(r => r.isMonitor).length;
+    const monitorUsers = roleRecognition.filter(r => r.isMonitor).reduce((s,r) => s + r.userCount, 0);
+
+    // Build visible list (filtered by monitor toggle)
+    const visibleRoles = [];
+    for (let i = 0; i < roleRecognition.length; i++) {
+        const rr = roleRecognition[i];
+        if (rr.isMonitor && !showMonitorRoles) continue;
+        visibleRoles.push({ rr, origIdx: i });
+    }
+
+    // Pagination
+    const totalVisible = visibleRoles.length;
+    const totalPages = Math.max(1, Math.ceil(totalVisible / rolePageSize));
+    if (roleCurrentPage > totalPages) roleCurrentPage = totalPages;
+    const startIdx = (roleCurrentPage - 1) * rolePageSize;
+    const pageRoles = visibleRoles.slice(startIdx, startIdx + rolePageSize);
+
+    for (const { rr, origIdx } of pageRoles) {
+        const tr = document.createElement('tr');
+        tr.className = rr.included ? 'matched' : 'unmatched';
+
+        let badge = '';
+        if (rr.matchType === 'auto-exact') badge = '<span class="match-badge auto">Exact Match</span>';
+        else if (rr.matchType === 'auto-fuzzy') badge = '<span class="match-badge auto">Fuzzy Match</span>';
+        else if (rr.matchType === 'manual') badge = '<span class="match-badge manual">Manual</span>';
+        else badge = '<span class="match-badge skip">Excluded</span>';
+
+        tr.innerHTML = `
+            <td><strong>${escapeHtml(rr.csvRole)}</strong></td>
+            <td><span class="user-count-badge clickable" onclick="showUsersForRole('${escapeHtml(rr.csvRole).replace(/'/g, "\\'")}')" title="Click to see users">${rr.userCount} users</span></td>
+            <td><select data-idx="${origIdx}" onchange="onRoleRecogChange(this)">
+                <option value="">(Exclude from audit)</option>
+                ${canonicals.map(c => `<option value="${c}" ${rr.matchedCanonical===c?'selected':''}>${c}</option>`).join('')}
+            </select></td>
+            <td>${badge}</td>
+            <td style="text-align:center;">
+                <strong style="color:${rr.included?'var(--success)':'var(--danger)'};">${rr.included?'&#10003; Yes':'&#10007; No'}</strong>
+            </td>`;
+        tbody.appendChild(tr);
+    }
+
+    // Render pagination controls
+    renderRolePagination(totalVisible, totalPages);
+
+    // Monitor roles toggle
+    const toggleDiv = document.getElementById('monitor-toggle');
+    if (monitorCount > 0) {
+        toggleDiv.innerHTML = showMonitorRoles
+            ? `<button class="btn btn-secondary" onclick="toggleMonitorRoles()" style="font-size:0.8rem;padding:4px 12px;">
+                &#9650; Hide Monitor Roles (${monitorCount} roles, ${monitorUsers} users)</button>`
+            : `<button class="btn btn-secondary" onclick="toggleMonitorRoles()" style="font-size:0.8rem;padding:4px 12px;">
+                &#9660; Show ${monitorCount} Hidden Monitor Role${monitorCount>1?'s':''} (${monitorUsers} users)</button>`;
+        toggleDiv.style.display = '';
+    } else {
+        toggleDiv.style.display = 'none';
+    }
+
+    updateExcludedSummary();
+}
+
+function toggleMonitorRoles() {
+    showMonitorRoles = !showMonitorRoles;
+    roleCurrentPage = 1;
+    renderRoleRecognition();
+}
+
+function renderRolePagination(totalVisible, totalPages) {
+    const container = document.getElementById('role-pagination');
+    if (totalVisible <= 10 && rolePageSize >= totalVisible) {
+        // Hide pagination if everything fits on one page at the smallest size
+        container.innerHTML = '';
+        return;
+    }
+
+    const startIdx = (roleCurrentPage - 1) * rolePageSize;
+    const endIdx = Math.min(startIdx + rolePageSize, totalVisible);
+
+    // Page size selector
+    const sizes = [10, 20, 50, 100];
+    const sizeOptions = sizes.map(s =>
+        `<option value="${s}" ${s === rolePageSize ? 'selected' : ''}>${s} per page</option>`
+    ).join('');
+
+    // Page number buttons (show max 5 pages around current)
+    let pageButtons = '';
+    const maxBtns = 5;
+    let pStart = Math.max(1, roleCurrentPage - Math.floor(maxBtns / 2));
+    let pEnd = Math.min(totalPages, pStart + maxBtns - 1);
+    if (pEnd - pStart < maxBtns - 1) pStart = Math.max(1, pEnd - maxBtns + 1);
+
+    for (let p = pStart; p <= pEnd; p++) {
+        pageButtons += `<button class="page-btn ${p === roleCurrentPage ? 'active' : ''}" onclick="goToRolePage(${p})">${p}</button>`;
+    }
+
+    container.innerHTML = `
+        <div class="page-info">Showing ${startIdx + 1}–${endIdx} of ${totalVisible} roles</div>
+        <div class="page-controls">
+            <select class="page-size-select" onchange="changeRolePageSize(this.value)">${sizeOptions}</select>
+            <button class="page-btn" onclick="goToRolePage(1)" ${roleCurrentPage === 1 ? 'disabled' : ''}>&laquo;</button>
+            <button class="page-btn" onclick="goToRolePage(${roleCurrentPage - 1})" ${roleCurrentPage === 1 ? 'disabled' : ''}>&lsaquo;</button>
+            ${pageButtons}
+            <button class="page-btn" onclick="goToRolePage(${roleCurrentPage + 1})" ${roleCurrentPage === totalPages ? 'disabled' : ''}>&rsaquo;</button>
+            <button class="page-btn" onclick="goToRolePage(${totalPages})" ${roleCurrentPage === totalPages ? 'disabled' : ''}>&raquo;</button>
+        </div>`;
+}
+
+function goToRolePage(page) {
+    roleCurrentPage = page;
+    renderRoleRecognition();
+    document.getElementById('role-recog-table').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function changeRolePageSize(val) {
+    rolePageSize = parseInt(val) || 10;
+    roleCurrentPage = 1;
+    try { localStorage.setItem('roleRecogPageSize', rolePageSize); } catch(e) {}
+    renderRoleRecognition();
+}
+
+function onRoleRecogChange(sel) {
+    const idx = parseInt(sel.dataset.idx);
+    roleRecognition[idx].matchedCanonical = sel.value;
+    roleRecognition[idx].included = !!sel.value;
+    roleRecognition[idx].matchType = sel.value ? 'manual' : 'none';
+    renderRoleRecognition();
+    saveRoleOverrides();
+}
+
+function updateExcludedSummary() {
+    const incl = roleRecognition.filter(r => r.included);
+    const excl = roleRecognition.filter(r => !r.included);
+    const iU = incl.reduce((s,r)=>s+r.userCount,0);
+    const eU = excl.reduce((s,r)=>s+r.userCount,0);
+    let html = `<strong>Audit scope:</strong> ${incl.length} role(s) included (${iU} user rows) &bull; ${excl.length} role(s) excluded (${eU} user rows)`;
+    if (excl.length) {
+        html += ` &bull; <a href="#" onclick="showExcludedRolesModal();return false;" style="color:var(--accent);font-weight:600;font-size:0.82rem;text-decoration:none;">View ${excl.length} excluded role${excl.length>1?'s':''} &rarr;</a>`;
+    }
+    document.getElementById('excluded-summary').innerHTML = html;
+}
+
+function showExcludedRolesModal() {
+    const excl = roleRecognition.filter(r => !r.included);
+    const totalUsers = excl.reduce((s,r) => s + r.userCount, 0);
+    document.getElementById('modal-title').textContent = `Excluded Roles — ${excl.length} role${excl.length !== 1 ? 's' : ''} (${totalUsers} users)`;
+    document.getElementById('modal-body').innerHTML = excl.length === 0
+        ? '<p style="color:var(--text-muted);font-size:0.85rem;">No excluded roles.</p>'
+        : `<table><thead><tr><th style="width:36px;">#</th><th>Role Name</th><th style="width:80px;text-align:right;">Users</th></tr></thead><tbody>` +
+          excl.sort((a,b) => b.userCount - a.userCount).map((r, i) =>
+              `<tr><td style="color:var(--text-light);">${i + 1}</td>` +
+              `<td>${escapeHtml(r.csvRole)}</td>` +
+              `<td style="text-align:right;font-weight:600;color:var(--text-muted);">${r.userCount}</td></tr>`
+          ).join('') + `</tbody></table>`;
+    document.getElementById('modal-overlay').classList.add('open');
+}
+
+// ===== CERT MAPPING =====
+function populateCertMappings() {
+    document.getElementById('mapping-body').innerHTML = '';
+    for (const ar of activeSystem.auditableRoles) addMappingRow(ar.canonical, ar.course, ar.type);
+}
+
+function addMappingRow(role='', course='', type='base') {
+    const body = document.getElementById('mapping-body');
+    const tr = document.createElement('tr');
+    const allRoles = [...new Set(activeSystem.auditableRoles.map(r=>r.canonical))];
+
+    const courseCol = document.getElementById('train-course')?.value;
+    let courses = [];
+    if (courseCol && trainingData) {
+        courses = [...new Set(trainingData.map(t=>t[courseCol]).filter(Boolean))].sort();
+    }
+    const allCourses = [...new Set([...activeSystem.auditableRoles.map(r=>r.course), ...courses])].sort();
+
+    tr.innerHTML = `
+        <td><select>
+            <option value="">-- Select --</option>
+            ${allRoles.map(r=>`<option value="${r}" ${r===role?'selected':''}>${r}</option>`).join('')}
+        </select></td>
+        <td><select>
+            <option value="">-- Select --</option>
+            ${allCourses.map(c=>`<option value="${c}" ${c===course?'selected':''}>${c}</option>`).join('')}
+        </select></td>
+        <td style="text-align:center;"><select style="width:auto;font-size:0.8rem;">
+            <option value="base" ${type==='base'?'selected':''}>Base</option>
+            <option value="addon" ${type==='addon'?'selected':''}>Add-On</option>
+        </select></td>
+        <td><button class="remove-btn" onclick="this.closest('tr').remove()">Remove</button></td>`;
+    body.appendChild(tr);
+}
+
+// ===== CORE AUDIT =====
+function runAudit() {
+    const siteName = getSiteName();
+    if (siteName === 'Unnamed Site' && !document.getElementById('site-name').value.trim()) {
+        if (!confirm('No site name entered. Continue?')) { document.getElementById('site-name').focus(); return; }
+    }
+
+    const userNameCol  = document.getElementById('user-name').value;
+    const userEmailCol = document.getElementById('user-email').value;
+    const userRoleCol  = document.getElementById('user-role').value;
+    const trainNameCol   = document.getElementById('train-name')?.value || '';
+    const trainFirstCol  = document.getElementById('train-first')?.value || '';
+    const trainLastCol   = document.getElementById('train-last')?.value || '';
+    const trainEmailCol  = document.getElementById('train-email').value;
+    const trainCourseCol = document.getElementById('train-course').value;
+    const trainStatusCol = document.getElementById('train-status').value;
+
+    if (!userEmailCol && !userNameCol) { alert('Select at least Name or Email for System Users.'); return; }
+    if (!userRoleCol) { alert('Select the Access Role column.'); return; }
+    if (!trainEmailCol) { alert('Select the Email column for Training file.'); return; }
+    if (!trainCourseCol) { alert('Select the Course/Title column for Training file.'); return; }
+
+    // Build canonical cert mapping from table
+    const directRoleCerts = {}, roleTypes = {};
+    for (const row of document.getElementById('mapping-body').querySelectorAll('tr')) {
+        const sel = row.querySelectorAll('select');
+        const role = sel[0]?.value?.trim(), course = sel[1]?.value?.trim(), rtype = sel[2]?.value?.trim()||'base';
+        if (role && course) {
+            if (!directRoleCerts[role]) directRoleCerts[role] = [];
+            directRoleCerts[role].push(course);
+            roleTypes[role] = rtype;
+        }
+    }
+    const baseInheritCerts = activeSystem.addonInheritsFrom ? (directRoleCerts[activeSystem.addonInheritsFrom] || []) : [];
+
+    function getRequiredCerts(canonicalRoles) {
+        const req = new Set();
+        let hasAddon = false;
+        for (const role of canonicalRoles) {
+            for (const c of (directRoleCerts[role]||[])) req.add(c);
+            if (roleTypes[role] === 'addon') hasAddon = true;
+        }
+        if (hasAddon) { for (const c of baseInheritCerts) req.add(c); }
+        return [...req];
+    }
+
+    // csvRole -> canonical lookup
+    const csvRoleToCanonical = {};
+    for (const rr of roleRecognition) {
+        if (rr.included && rr.matchedCanonical) csvRoleToCanonical[rr.csvRole] = rr.matchedCanonical;
+    }
+
+    // Consolidate users
+    const userMap = {};
+    excludedCount = 0;
+    const excludedKeys = new Set();
+    const excludedUsersMap = {}; // matchKey -> { name, email, csvRoles: Set }
+    for (const user of usersData) {
+        const name  = user[userNameCol] || '';
+        const email = user[userEmailCol] || '';
+        const csvRole = user[userRoleCol] || '';
+        const matchKey = (email || name).toLowerCase().trim();
+        if (!matchKey) continue;
+
+        const canonical = csvRoleToCanonical[csvRole];
+        if (!canonical) {
+            if (!userMap[matchKey]) {
+                excludedKeys.add(matchKey);
+                if (!excludedUsersMap[matchKey]) excludedUsersMap[matchKey] = { name, email, csvRoles: new Set() };
+                excludedUsersMap[matchKey].csvRoles.add(csvRole);
+                if (name && !excludedUsersMap[matchKey].name) excludedUsersMap[matchKey].name = name;
+            }
+            continue;
+        }
+
+        excludedKeys.delete(matchKey);
+        delete excludedUsersMap[matchKey];
+        if (!userMap[matchKey]) {
+            userMap[matchKey] = { name, email, canonicalRoles: new Set(), csvRoles: new Set() };
+        }
+        userMap[matchKey].canonicalRoles.add(canonical);
+        userMap[matchKey].csvRoles.add(csvRole);
+        if (name && !userMap[matchKey].name) userMap[matchKey].name = name;
+        if (email && !userMap[matchKey].email) userMap[matchKey].email = email;
+    }
+    excludedCount = excludedKeys.size;
+    // Build excluded users list sorted by name
+    excludedUsers = Object.values(excludedUsersMap).sort((a,b) => (a.name||a.email).localeCompare(b.name||b.email));
+
+    // ---- Build training lookups (4 tiers) ----
+    // Tier 1: exact email  ->  Set of completed titles
+    // Tier 2: normalized email (strip dots from local part, same domain)  ->  Set of completed titles
+    // Tier 3: local-part match (same username, any domain — catches domain migrations)
+    // Tier 4: "first last" name  ->  { email, titles }
+    const trainingByEmail = {};     // exact email -> Set<title>
+    const trainingByNormEmail = {}; // normalized email -> Set<title>
+    const trainingByLocal = {};     // normalized local part -> [{ email, titles }]
+    const trainingByName = {};      // "first last" -> { email, titles: Set<title> }
+
+    function normalizeEmail(email) {
+        // Strip dots from local part (before @), lowercase
+        const parts = email.split('@');
+        if (parts.length !== 2) return email;
+        return parts[0].replace(/\./g, '') + '@' + parts[1];
+    }
+
+    function getLocalPart(email) {
+        // Normalized local part: strip dots, lowercase
+        const at = email.indexOf('@');
+        if (at < 0) return email.toLowerCase().replace(/\./g, '');
+        return email.substring(0, at).toLowerCase().replace(/\./g, '');
+    }
+
+    function isTrainingComplete(statusVal) {
+        if (!trainStatusCol) return true;
+        if (statusVal === '100') return true;
+        if (/^\d{4}-\d{2}-\d{2}/.test(statusVal)) return true;
+        if (/^\d+$/.test(statusVal) && parseInt(statusVal) >= 100) return true;
+        const lo = statusVal.toLowerCase();
+        return lo.includes('complet') || lo.includes('pass') ||
+            lo === 'yes' || lo === 'done' || lo === 'true';
+    }
+
+    // Data quality counters for audit report
+    const aqStats = { totalTraining: 0, noEmail: 0, noCourse: 0, incomplete: 0, valid: 0,
+                      totalUsers: usersData.length, consolidatedUsers: 0, excludedUsers: 0,
+                      matchTiers: { manual:0, exact:0, 'fuzzy-email':0, 'diff-domain':0, name:0, none:0 } };
+
+    for (const t of trainingData) {
+        aqStats.totalTraining++;
+        const email = (t[trainEmailCol] || '').toLowerCase().trim();
+        const title = t[trainCourseCol] || '';
+        if (!title) { aqStats.noCourse++; continue; }
+        if (!email) aqStats.noEmail++;
+
+        const statusVal = (t[trainStatusCol] || '').trim();
+        if (!isTrainingComplete(statusVal)) { aqStats.incomplete++; continue; }
+        aqStats.valid++;
+
+        // Tier 1: exact email
+        if (email) {
+            if (!trainingByEmail[email]) trainingByEmail[email] = new Set();
+            trainingByEmail[email].add(title);
+
+            // Tier 2: normalized email (dots stripped, same domain)
+            const normEm = normalizeEmail(email);
+            if (!trainingByNormEmail[normEm]) trainingByNormEmail[normEm] = new Set();
+            trainingByNormEmail[normEm].add(title);
+
+            // Tier 3: local-part index (catches domain migrations)
+            const localPart = getLocalPart(email);
+            if (localPart) {
+                if (!trainingByLocal[localPart]) trainingByLocal[localPart] = [];
+                // Aggregate per email under same local part
+                let entry = trainingByLocal[localPart].find(e => e.email === email);
+                if (!entry) { entry = { email, titles: new Set() }; trainingByLocal[localPart].push(entry); }
+                entry.titles.add(title);
+            }
+        }
+
+        // Tier 4: name lookup (full name column OR separate first/last)
+        let nameKey = '';
+        if (trainNameCol) {
+            nameKey = (t[trainNameCol] || '').toLowerCase().trim();
+        } else if (trainFirstCol && trainLastCol) {
+            const first = (t[trainFirstCol] || '').toLowerCase().trim();
+            const last  = (t[trainLastCol]  || '').toLowerCase().trim();
+            if (first && last) nameKey = first + ' ' + last;
+        }
+        if (nameKey) {
+            if (!trainingByName[nameKey]) trainingByName[nameKey] = { email: email || '', titles: new Set() };
+            trainingByName[nameKey].titles.add(title);
+        }
+    }
+
+    // Check if any Set contains a completed course (fuzzy)
+    function setHasCourse(titleSet, requiredCourse) {
+        if (!titleSet) return false;
+        for (const t of titleSet) {
+            if (courseMatches(t, requiredCourse)) return true;
+        }
+        return false;
+    }
+
+    // Check if user has completed a cert HIGHER than the required one in the hierarchy
+    function hasHigherCertInSet(titleSet, requiredCourse) {
+        const reqIdx = activeSystem.certHierarchy.findIndex(h => courseMatches(h, requiredCourse));
+        if (reqIdx < 0) return false;
+        for (let i = 0; i < reqIdx; i++) {
+            if (setHasCourse(titleSet, activeSystem.certHierarchy[i])) return true;
+        }
+        return false;
+    }
+
+    function certSatisfied(titleSet, course) {
+        return setHasCourse(titleSet, course) || hasHigherCertInSet(titleSet, course);
+    }
+
+    // Merged multi-tier matching: aggregates training from ALL matching tiers
+    // so a user who trained under an old email + new email gets full credit.
+    // Returns { titles, matchMethod, matchDetail }
+    //   matchMethod = highest (least confident) tier that contributed titles
+    function resolveTraining(userEmail, userName) {
+        const emailKey = userEmail.toLowerCase().trim();
+        const merged = new Set();
+        let method = 'none';
+        const details = [];
+
+        // Tier 0: manual override (always takes priority label)
+        const override = manualOverrides[emailKey];
+        if (override) {
+            const overrideKey = override.toLowerCase().trim();
+            const ovTitles = trainingByEmail[overrideKey];
+            if (ovTitles) {
+                for (const t of ovTitles) merged.add(t);
+                method = 'manual';
+                details.push('Linked to: ' + override);
+            }
+        }
+
+        // Tier 1: exact email
+        if (trainingByEmail[emailKey]) {
+            for (const t of trainingByEmail[emailKey]) merged.add(t);
+            if (method === 'none') method = 'exact';
+        }
+
+        // Tier 2: normalized email (strip dots, same domain)
+        const normEm = normalizeEmail(emailKey);
+        if (trainingByNormEmail[normEm]) {
+            let added = false;
+            for (const t of trainingByNormEmail[normEm]) {
+                if (!merged.has(t)) { merged.add(t); added = true; }
+            }
+            if (added && method === 'none') method = 'exact'; // same domain, just dots
+            if (added && method !== 'manual') {
+                // Find the alternate email
+                for (const origEmail of Object.keys(trainingByEmail)) {
+                    if (normalizeEmail(origEmail) === normEm && origEmail !== emailKey) {
+                        if (method === 'none' || method === 'exact') method = 'fuzzy-email';
+                        details.push(origEmail);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Tier 3: local-part match (same username, different domain)
+        const localPart = getLocalPart(emailKey);
+        if (localPart && trainingByLocal[localPart]) {
+            for (const e of trainingByLocal[localPart]) {
+                if (e.email === emailKey) continue; // already covered by Tier 1
+                let added = false;
+                for (const t of e.titles) {
+                    if (!merged.has(t)) { merged.add(t); added = true; }
+                }
+                if (added) {
+                    details.push(e.email);
+                    if (method === 'none' || method === 'exact') method = 'diff-domain';
+                    else if (method === 'fuzzy-email') method = 'diff-domain';
+                }
+            }
+        }
+
+        // Tier 4: name match
+        if (userName) {
+            const nameNorm = userName.toLowerCase().trim();
+            let nameKeys = [];
+            if (nameNorm.includes(',')) {
+                const parts = nameNorm.split(',').map(s => s.trim());
+                if (parts.length >= 2) {
+                    nameKeys.push(parts[1] + ' ' + parts[0]);
+                    nameKeys.push(parts[0] + ' ' + parts[1]);
+                }
+            } else {
+                nameKeys.push(nameNorm);
+                const parts = nameNorm.split(/\s+/);
+                if (parts.length >= 2) {
+                    nameKeys.push(parts[parts.length-1] + ' ' + parts.slice(0,-1).join(' '));
+                }
+            }
+            for (const nk of nameKeys) {
+                if (trainingByName[nk]) {
+                    const info = trainingByName[nk];
+                    let added = false;
+                    for (const t of info.titles) {
+                        if (!merged.has(t)) { merged.add(t); added = true; }
+                    }
+                    if (added) {
+                        if (info.email) details.push(info.email);
+                        // Upgrade badge to 'name' since new records came from name matching
+                        if (method !== 'manual') method = 'name';
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Build detail string
+        const uniqueDetails = [...new Set(details)];
+        let matchDetail = '';
+        if (method === 'manual') {
+            matchDetail = uniqueDetails[0] || '';
+            if (uniqueDetails.length > 1) matchDetail += ' + also: ' + uniqueDetails.slice(1).join(', ');
+        } else if (method === 'none') {
+            matchDetail = 'No training record found';
+        } else if (method === 'exact') {
+            matchDetail = '';
+        } else {
+            matchDetail = 'Also matched: ' + uniqueDetails.join(', ');
+        }
+
+        return { titles: merged.size > 0 ? merged : null, matchMethod: method, matchDetail };
+    }
+
+    // Run comparison
+    auditResults = [];
+    for (const [matchKey, ud] of Object.entries(userMap)) {
+        const canonArr = [...ud.canonicalRoles];
+        const csvArr = [...ud.csvRoles];
+        const required = getRequiredCerts(canonArr);
+        const domain = getEmailDomain(ud.email);
+
+        // Resolve training record via 3-tier matching
+        const training = resolveTraining(ud.email, ud.name);
+
+        let completed = [], missing = [];
+        for (const c of required) {
+            if (certSatisfied(training.titles, c)) completed.push(c);
+            else missing.push(c);
+        }
+
+        const roleDetails = canonArr.map(r => ({ name: r, type: roleTypes[r] || 'base' }));
+        auditResults.push({
+            name: ud.name, email: ud.email, domain,
+            roles: canonArr, csvRoles: csvArr, roleDetails,
+            overallStatus: missing.length === 0 ? 'compliant' : 'noncompliant',
+            requiredCourses: required, completedCourses: completed, missingCourses: missing,
+            hasAddon: canonArr.some(r => roleTypes[r] === 'addon'),
+            matchMethod: training.matchMethod,
+            matchDetail: training.matchDetail
+        });
+    }
+
+    // Populate audit quality stats
+    aqStats.consolidatedUsers = Object.keys(userMap).length;
+    aqStats.excludedUsers = excludedCount;
+    for (const r of auditResults) aqStats.matchTiers[r.matchMethod] = (aqStats.matchTiers[r.matchMethod] || 0) + 1;
+
+    // Sort non-compliant first
+    const so = { noncompliant: 0, compliant: 1 };
+    auditResults.sort((a,b) => (so[a.overallStatus]??9) - (so[b.overallStatus]??9));
+
+    document.getElementById('header-site-badge').textContent = siteName;
+    document.getElementById('header-site-badge').classList.add('active');
+    document.getElementById('btn-reset-header').classList.add('active');
+    renderAuditReport(aqStats);
+    saveAuditHistory();
+    showResults();
+}
+
+function renderAuditReport(s) {
+    const tierLabels = { manual:'Manual Link', exact:'Exact Email', 'fuzzy-email':'Fuzzy Email',
+                         'diff-domain':'Diff Domain', name:'Name Match', none:'No Record' };
+    const warnings = [];
+    if (s.noCourse > 0) warnings.push(`<span class="warn">⚠ ${s.noCourse} training record${s.noCourse>1?'s':''} skipped (missing course title)</span>`);
+    if (s.noEmail > 0)  warnings.push(`<span class="warn">⚠ ${s.noEmail} training record${s.noEmail>1?'s':''} missing email — only name matching possible</span>`);
+    if (s.matchTiers.none > 0) warnings.push(`<span class="warn">⚠ ${s.matchTiers.none} user${s.matchTiers.none>1?'s':''} had no training record found</span>`);
+
+    const matchHtml = Object.entries(s.matchTiers)
+        .filter(([,v]) => v > 0)
+        .map(([k,v]) => `<li><span class="num">${v}</span> ${tierLabels[k]||k}</li>`)
+        .join('');
+
+    const html = `<details class="audit-report">
+        <summary>Data Quality Report</summary>
+        <div class="report-body">
+            <div class="report-row">
+                <div class="report-col">
+                    <h4>Training Data</h4>
+                    <ul>
+                        <li><span class="num">${s.totalTraining}</span> total records</li>
+                        <li><span class="num">${s.valid}</span> valid completions</li>
+                        <li><span class="num">${s.incomplete}</span> incomplete / in-progress</li>
+                        <li><span class="num">${s.noCourse}</span> missing course title</li>
+                    </ul>
+                </div>
+                <div class="report-col">
+                    <h4>User Consolidation</h4>
+                    <ul>
+                        <li><span class="num">${s.totalUsers}</span> rows in access file</li>
+                        <li><span class="num">${s.consolidatedUsers}</span> unique users audited</li>
+                        <li><span class="num">${s.excludedUsers}</span> excluded (non-auditable roles)</li>
+                    </ul>
+                </div>
+                <div class="report-col">
+                    <h4>Match Method Breakdown</h4>
+                    <ul>${matchHtml}</ul>
+                </div>
+            </div>
+            ${warnings.length ? '<div style="margin-top:8px;font-size:0.8rem;">' + warnings.join('<br>') + '</div>' : ''}
+        </div>
+    </details>`;
+    document.getElementById('audit-report-container').innerHTML = html;
+}
+
+function renderComplianceTrend() {
+    const siteName = getSiteName();
+    const container = document.getElementById('trend-container');
+    if (!activeSystem) { container.innerHTML = ''; return; }
+    const historyKey = 'history_' + djb2Hash(activeSystem.id + '::' + siteName.toLowerCase().trim());
+    const history = lsGet(historyKey);
+
+    if (!history || !Array.isArray(history) || history.length < 2) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const current = history[0];
+    const previous = history[1];
+    const delta = current.compliancePercent - previous.compliancePercent;
+    const deltaSign = delta > 0 ? '+' : '';
+    const deltaClass = delta > 0 ? 'trend-positive' : (delta < 0 ? 'trend-negative' : 'trend-neutral');
+
+    function fmtDate(d) {
+        try { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }); }
+        catch(e) { return d; }
+    }
+
+    const headlineHtml = `<div class="trend-headline">
+        Previous audit (${fmtDate(previous.auditDate)}):
+        <strong>${previous.compliancePercent}%</strong> compliant
+        &rarr; Current: <strong>${current.compliancePercent}%</strong>
+        <span class="${deltaClass}">(${deltaSign}${delta.toFixed(1)}%)</span>
+    </div>`;
+
+    const display = history.slice(0, 5);
+    let rows = '';
+    for (let i = 0; i < display.length; i++) {
+        const h = display[i];
+        let changeHtml = '&mdash;';
+        if (i < display.length - 1) {
+            const chg = h.compliancePercent - display[i+1].compliancePercent;
+            const chgSign = chg > 0 ? '+' : '';
+            const chgClass = chg > 0 ? 'trend-positive' : (chg < 0 ? 'trend-negative' : 'trend-neutral');
+            changeHtml = `<span class="${chgClass}">${chgSign}${chg.toFixed(1)}%</span>`;
+        }
+        const label = i === 0 ? ' (current)' : '';
+        rows += `<tr${i===0?' style="font-weight:600;"':''}>
+            <td>${fmtDate(h.auditDate)}${label}</td>
+            <td>${h.totalUsers}</td>
+            <td>${h.compliantCount} / ${h.totalUsers}</td>
+            <td>${h.compliancePercent}%</td>
+            <td>${changeHtml}</td>
+        </tr>`;
+    }
+
+    container.innerHTML = `<details class="audit-report trend-section">
+        <summary>Compliance Trend &mdash; ${escapeHtml(siteName)}</summary>
+        <div class="report-body">
+            ${headlineHtml}
+            <table class="trend-table">
+                <thead><tr><th>Audit Date</th><th>Users</th><th>Compliant</th><th>Rate</th><th>Change</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+    </details>`;
+}
+
+// ===== RESULTS =====
+function showResults() {
+    document.getElementById('step-results').classList.remove('hidden');
+    document.getElementById('results-site-label').textContent = `${getSiteName()} (${getAuditDate()})`;
+
+    const domains = [...new Set(auditResults.map(r=>r.domain))].sort();
+    const ds = document.getElementById('filter-domain');
+    ds.innerHTML = `<option value="all">All Domains (${domains.length})</option>` +
+        domains.map(d => `<option value="${d}">@${d} (${auditResults.filter(r=>r.domain===d).length})</option>`).join('');
+
+    const roles = [...new Set(auditResults.flatMap(r=>r.roles))].sort();
+    const rs = document.getElementById('filter-role');
+    rs.innerHTML = '<option value="all">All Roles</option>' + roles.map(r => `<option value="${r}">${r}</option>`).join('');
+
+    const exclDiv = document.getElementById('results-excluded-summary');
+    if (excludedCount > 0) {
+        const exclRoles = roleRecognition.filter(r=>!r.included).map(r=>r.csvRole);
+        let exclUsersHtml = '';
+        if (excludedUsers.length > 0) {
+            exclUsersHtml = `<table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:0.82rem;">
+                <thead><tr>
+                    <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;">Name</th>
+                    <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;">Email</th>
+                    <th style="text-align:left;padding:6px 10px;border-bottom:2px solid var(--border);color:var(--text-muted);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;">Role(s)</th>
+                </tr></thead><tbody>` +
+                excludedUsers.map(u =>
+                    `<tr><td style="padding:5px 10px;border-bottom:1px solid var(--border-light);">${escapeHtml(u.name||'—')}</td>` +
+                    `<td style="padding:5px 10px;border-bottom:1px solid var(--border-light);color:var(--text-muted);">${escapeHtml(u.email||'—')}</td>` +
+                    `<td style="padding:5px 10px;border-bottom:1px solid var(--border-light);color:var(--text-muted);font-size:0.78rem;">${[...u.csvRoles].map(escapeHtml).join(', ')}</td></tr>`
+                ).join('') +
+                `</tbody></table>`;
+        }
+        exclDiv.innerHTML = `<details><summary><strong>&#9432; ${excludedCount} user(s) excluded</strong> from this audit &mdash; only assigned non-auditable roles</summary>` +
+            (exclRoles.length ? `<div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;"><strong>Excluded roles:</strong> ${exclRoles.map(escapeHtml).join(', ')}</div>` : '') +
+            exclUsersHtml + '</details>';
+        exclDiv.style.display = '';
+    } else { exclDiv.style.display = 'none'; }
+
+    renderComplianceTrend();
+    applyFilters();
+    document.getElementById('step-results').scrollIntoView({ behavior: 'smooth' });
+}
+
+function applyFilters() {
+    const search = document.getElementById('filter-search').value.toLowerCase().trim();
+    const domF = document.getElementById('filter-domain').value;
+    const statF = document.getElementById('filter-status').value;
+    const roleF = document.getElementById('filter-role').value;
+    const matchF = document.getElementById('filter-match').value;
+
+    filteredResults = auditResults.filter(r => {
+        if (search && !`${r.name} ${r.email} ${r.domain} ${r.roles.join(' ')}`.toLowerCase().includes(search)) return false;
+        if (domF !== 'all' && r.domain !== domF) return false;
+        if (statF !== 'all' && r.overallStatus !== statF) return false;
+        if (roleF !== 'all' && !r.roles.includes(roleF)) return false;
+        if (matchF !== 'all' && r.matchMethod !== matchF) return false;
+        return true;
+    });
+
+    const total = filteredResults.length;
+    const comp = filteredResults.filter(r=>r.overallStatus==='compliant').length;
+    const nonc = filteredResults.filter(r=>r.overallStatus==='noncompliant').length;
+    const isF = search || domF !== 'all' || statF !== 'all' || roleF !== 'all' || matchF !== 'all';
+
+    document.getElementById('results-summary').innerHTML = `
+        <div class="stat-card stat-total">
+            <div class="stat-value">${total}</div>
+            <div class="stat-label">${isF?'Filtered':'Audited'} Users${isF?' / '+auditResults.length+' total':''}</div>
+        </div>
+        <div class="stat-card stat-compliant">
+            <div class="stat-value">${comp}</div>
+            <div class="stat-label">&#10003; Compliant</div>
+        </div>
+        <div class="stat-card stat-noncompliant">
+            <div class="stat-value">${nonc}</div>
+            <div class="stat-label">&#10007; Non-Compliant</div>
+        </div>`;
+
+    document.getElementById('filter-count').textContent =
+        isF ? `Showing ${total} of ${auditResults.length} audited users` : `${total} audited users`;
+    renderTable();
+}
+
+function clearFilters() {
+    document.getElementById('filter-search').value = '';
+    document.getElementById('filter-domain').value = 'all';
+    document.getElementById('filter-status').value = 'all';
+    document.getElementById('filter-role').value = 'all';
+    document.getElementById('filter-match').value = 'all';
+    applyFilters();
+}
+
+function matchBadgeHtml(r) {
+    const linkBtn = `<button class="link-btn" onclick="manualLink('${escapeHtml(r.email)}')" title="Manually link to a training email">&#128279; Link</button>`;
+    if (r.matchMethod === 'manual')
+        return `<span class="match-badge manual" title="${escapeHtml(r.matchDetail)}">&#128279; Manual</span>${linkBtn}`;
+    if (r.matchMethod === 'exact')
+        return `<span class="match-badge exact">&#10003; Exact</span>${linkBtn}`;
+    if (r.matchMethod === 'fuzzy-email')
+        return `<span class="match-badge fuzzy-email" title="${escapeHtml(r.matchDetail)}">&#9888; Fuzzy Email</span>${linkBtn}`;
+    if (r.matchMethod === 'diff-domain')
+        return `<span class="match-badge diff-domain" title="${escapeHtml(r.matchDetail)}">&#9888; Diff Domain</span>${linkBtn}`;
+    if (r.matchMethod === 'name')
+        return `<span class="match-badge name-match" title="${escapeHtml(r.matchDetail)}">&#9888; Name Match</span>${linkBtn}`;
+    return `<span class="match-badge no-record" title="No training record found">No Record</span>${linkBtn}`;
+}
+
+function manualLink(accessEmail) {
+    const current = manualOverrides[accessEmail.toLowerCase()] || '';
+    const trainingEmail = prompt(
+        `Manually link training record for:\n${accessEmail}\n\nEnter the training email address to link to:` +
+        (current ? `\n\nCurrently linked to: ${current}\n(Leave blank and click OK to remove override)` : ''),
+        current
+    );
+    if (trainingEmail === null) return; // cancelled
+    const key = accessEmail.toLowerCase().trim();
+    const emailLower = trainingEmail.trim().toLowerCase();
+    if (emailLower) {
+        // Validate that the email exists in training data
+        if (knownTrainingEmails.size > 0 && !knownTrainingEmails.has(emailLower)) {
+            if (!confirm(
+                `⚠ The email "${trainingEmail.trim()}" was not found in the training data.\n\n` +
+                `This may result in no training records being matched.\n\n` +
+                `Do you still want to create this manual link?`
+            )) return; // user cancelled after warning
+        }
+        manualOverrides[key] = trainingEmail.trim();
+    } else {
+        delete manualOverrides[key];
+    }
+    saveManualOverrides();
+    // Re-run audit to pick up the override
+    runAudit();
+}
+
+function renderTable() {
+    document.getElementById('results-thead').innerHTML = `
+        <th class="sortable" onclick="toggleSort('name')" style="width:13%;">Name ${sortIcon('name')}</th>
+        <th class="sortable" onclick="toggleSort('email')" style="width:16%;">Email ${sortIcon('email')}</th>
+        <th style="width:17%;">Roles</th>
+        <th class="sortable" onclick="toggleSort('status')" style="width:10%;">Status ${sortIcon('status')}</th>
+        <th class="sortable" onclick="toggleSort('matchMethod')" style="width:12%;">Match ${sortIcon('matchMethod')}</th>
+        <th style="width:32%;">Certifications</th>`;
+
+    const tbody = document.getElementById('results-tbody');
+    tbody.innerHTML = '';
+
+    for (const r of filteredResults) {
+        const tr = document.createElement('tr');
+        tr.className = r.overallStatus === 'compliant' ? 'row-compliant' : 'row-noncompliant';
+        const sc = r.overallStatus === 'compliant' ? 'status-compliant' : 'status-noncompliant';
+        const st = r.overallStatus === 'compliant' ? '&#10003; Compliant' : '&#10007; Non-Compliant';
+
+        const roleTags = r.roleDetails.map(rd =>
+            `<span class="role-tag ${rd.type==='addon'?'addon':''}">${escapeHtml(rd.name)}${rd.type==='addon'?' +':''}</span>`
+        ).join(' ');
+
+        // Combine completed and missing into one cell
+        const certParts = [];
+        for (const c of r.completedCourses) certParts.push(`<span class="course-tag done">&#10003; ${escapeHtml(c)}</span>`);
+        for (const c of r.missingCourses) certParts.push(`<span class="course-tag missing">&#10007; ${escapeHtml(c)}</span>`);
+        const certHtml = certParts.length ? certParts.join(' ') : '<span style="color:var(--text-light);">—</span>';
+
+        tr.innerHTML = `
+            <td>${escapeHtml(r.name)}</td>
+            <td style="font-size:0.78rem;">${escapeHtml(r.email)}<br><span class="domain-tag">@${escapeHtml(r.domain)}</span></td>
+            <td>${roleTags}</td>
+            <td class="${sc}">${st}</td>
+            <td>${matchBadgeHtml(r)}</td>
+            <td>${certHtml}</td>`;
+        tbody.appendChild(tr);
+    }
+}
+
+function toggleSort(col) {
+    if (sortCol === col) sortAsc = !sortAsc; else { sortCol = col; sortAsc = true; }
+    const statusOrder = { noncompliant: 0, compliant: 1 };
+    const matchOrder  = { manual: 0, exact: 1, 'fuzzy-email': 2, 'diff-domain': 3, name: 4, none: 5 };
+    filteredResults.sort((a,b) => {
+        let va, vb;
+        if (col === 'status')      { va = statusOrder[a.overallStatus]??9; vb = statusOrder[b.overallStatus]??9; }
+        else if (col === 'matchMethod') { va = matchOrder[a.matchMethod]??9; vb = matchOrder[b.matchMethod]??9; }
+        else { va = (a[col]||'').toLowerCase(); vb = (b[col]||'').toLowerCase(); }
+        return sortAsc ? (va<vb?-1:va>vb?1:0) : (va>vb?-1:va<vb?1:0);
+    });
+    renderTable();
+}
+function sortIcon(col) { return sortCol !== col ? '' : (sortAsc ? '&#9650;' : '&#9660;'); }
+
+// ===== MODAL =====
+function showUsersForRole(csvRole) {
+    const roleCol = document.getElementById('user-role')?.value;
+    const nameCol = document.getElementById('user-name')?.value;
+    const emailCol = document.getElementById('user-email')?.value;
+    if (!roleCol || !usersData) return;
+
+    const users = [];
+    const seen = new Set();
+    for (const u of usersData) {
+        if ((u[roleCol] || '') !== csvRole) continue;
+        const name = u[nameCol] || '';
+        const email = u[emailCol] || '';
+        const key = (email || name).toLowerCase().trim();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        users.push({ name, email });
+    }
+    users.sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+
+    document.getElementById('modal-title').textContent = `${csvRole} — ${users.length} user${users.length !== 1 ? 's' : ''}`;
+    document.getElementById('modal-body').innerHTML = users.length === 0
+        ? '<p style="color:var(--text-muted);font-size:0.85rem;">No users found for this role.</p>'
+        : `<table><thead><tr><th>#</th><th>Name</th><th>Email</th></tr></thead><tbody>` +
+          users.map((u, i) =>
+              `<tr><td style="color:var(--text-light);width:36px;">${i + 1}</td>` +
+              `<td>${escapeHtml(u.name || '—')}</td>` +
+              `<td style="color:var(--text-muted);">${escapeHtml(u.email || '—')}</td></tr>`
+          ).join('') + `</tbody></table>`;
+    document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('modal-overlay').classList.remove('open');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ===== EXPORT =====
+function exportCSV(filter) {
+    let data;
+    if (filter === 'filtered') data = filteredResults;
+    else if (filter === 'compliant') data = auditResults.filter(r=>r.overallStatus==='compliant');
+    else if (filter === 'noncompliant') data = auditResults.filter(r=>r.overallStatus==='noncompliant');
+    else data = auditResults;
+
+    const site = getSiteName(), date = getAuditDate();
+    const matchLabels = { 'manual':'Manual Link', 'exact':'Exact Email', 'fuzzy-email':'Fuzzy Email', 'diff-domain':'Different Domain', 'name':'Name Match', 'none':'No Record' };
+    const headers = [
+        'Site','Audit Date','Name','Email','Email Domain',
+        'Assigned Roles','Original CSV Roles','Has Add-On Role',
+        'Status','Match Method','Match Detail',
+        'Required Certifications','Completed Certifications','Missing Certifications'
+    ];
+    const rows = data.map(r => [
+        site, date, r.name, r.email, r.domain,
+        r.roles.join('; '), r.csvRoles.join('; '), r.hasAddon ? 'Yes' : 'No',
+        r.overallStatus === 'compliant' ? 'Compliant' : 'Non-Compliant',
+        matchLabels[r.matchMethod] || r.matchMethod, r.matchDetail || '',
+        r.requiredCourses.join('; '), r.completedCourses.join('; '), r.missingCourses.join('; ')
+    ]);
+
+    const csv = [headers,...rows].map(row=>row.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${activeSystem ? activeSystem.exportPrefix : 'audit'}_${site.replace(/[^a-zA-Z0-9_-]/g,'_').substring(0,40)}_${filter}_${date}.csv`;
+    a.click(); URL.revokeObjectURL(a.href);
+}
+
+// ===== RESET =====
+function resetAudit() {
+    const confirmMsg = activeSystem ? activeSystem.labels.newAuditConfirm : 'Start a new audit? Current results will be cleared.';
+    if (auditResults.length > 0 && !confirm(confirmMsg)) return;
+
+    // Clear all data state
+    usersData = trainingData = null;
+    usersHeaders = trainingHeaders = [];
+    auditResults = filteredResults = [];
+    roleRecognition = [];
+    excludedCount = 0; excludedUsers = []; sortCol = null; sortAsc = true; showMonitorRoles = false;
+    knownTrainingEmails = new Set();
+    Object.keys(manualOverrides).forEach(k => delete manualOverrides[k]);
+
+    // Clear form inputs
+    document.getElementById('file-users').value = '';
+    document.getElementById('file-training').value = '';
+    document.getElementById('box-users').classList.remove('loaded');
+    document.getElementById('box-training').classList.remove('loaded');
+    document.getElementById('info-users').textContent = '';
+    document.getElementById('info-training').textContent = '';
+    document.getElementById('site-name').value = '';
+    document.getElementById('audit-date').valueAsDate = new Date();
+
+    // Hide all steps except system selection
+    ['step-site','step-upload','step-columns','step-role-recog','step-mapping','step-run','step-results'].forEach(id =>
+        document.getElementById(id).classList.add('hidden'));
+    document.getElementById('audit-report-container').innerHTML = '';
+    document.getElementById('trend-container').innerHTML = '';
+    document.getElementById('header-site-badge').classList.remove('active');
+    document.getElementById('btn-reset-header').classList.remove('active');
+
+    // Clear system selection and reset to generic state
+    activeSystem = null;
+    document.body.className = '';
+    document.querySelectorAll('.system-card').forEach(c => c.classList.remove('selected'));
+    document.title = 'User Audit Tool';
+    document.getElementById('header-title').textContent = 'User Audit Tool';
+    document.getElementById('header-subtitle').textContent = 'Select a system to begin';
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modal-title">Users</h3>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal()" style="font-size:0.82rem;padding:7px 16px;">Close</button>
+        </div>
+    </div>
+</div>
+<div class="toast-container" id="toast-container"></div>
+</body>
+</html>
